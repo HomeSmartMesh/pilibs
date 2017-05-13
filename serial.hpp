@@ -39,9 +39,6 @@ ________________________________________________________________________________
 #ifndef __SERIAL__
 #define __SERIAL__
 
-#include "bme280_server.hpp"
-
-#include <linux/joystick.h>
 #include <string>
 //for file
 #include <fstream>
@@ -89,8 +86,6 @@ public:
 	int fd;
 	LogBuffer_c logbuf;
 public:
-	std::map<int,bme_measures_c> NodesMeasures;
-public:
 	std::string 	Name;
 	std::ofstream 	logfile;
 	bool			isLogFile;
@@ -101,11 +96,11 @@ public:
 	void 		start(std::string port_name,std::string baudrate);
 	void 		start_logfile(std::string fileName);
 	bool 		update();
-	NodeMap_t 	processBuffer();
+	void 		processBuffer();
+	void		processLine();
 	void 		logBuffer();
 	void 		clearBuffer();
-	void 		send(char* buffer,int size);
-	void 		processLine(NodeMap_t &nodes);
+	void 		send(const char* buffer,int size);
 	void 		logOneLine(std::string line);
 	
 

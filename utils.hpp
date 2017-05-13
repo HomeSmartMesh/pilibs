@@ -130,6 +130,9 @@ namespace utl
 									nlohmann::json		&jRes,
 									const std::string 	&type
 									);
+	void 			crc_set(uint8_t *data);
+	uint16_t 		crc_Fletcher16( uint8_t const *data, uint8_t count );
+
 }
 
 #endif /*__UTILS__*/

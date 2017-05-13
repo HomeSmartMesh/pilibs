@@ -46,8 +46,6 @@ ________________________________________________________________________________
 //for getTime
 #include "utils.hpp"
 
-#include "bme280_server.hpp"
-
 #include <stdio.h>
 #include <errno.h>
 #include <fcntl.h> 
@@ -192,19 +190,6 @@ bool Serial::config(strmap &conf)
 	else
 	{
 		res = false;
-	}
-	
-	
-	std::string NodesList = conf["SensorNodes"];
-	strvect NodesIds = utl::split(NodesList,';');
-	
-	
-	for(std::string str : NodesIds)
-	{
-		std::cout << "str> Line: " << str << std::endl;
-		std::string fullfilepath = exepath + "/NodeId" + str + ".txt";
-		int l_Id = std::stoi(str);
-		NodesMeasures[l_Id].load_calib_data(fullfilepath);
 	}
 	
 	isReady = res;
@@ -360,143 +345,24 @@ void LogBuffer_c::lastLinesAdd(std::string &line)
 	//std::cout << "lastline_add>" << line << std::endl;
 }
 
-void Serial::processLine(NodeMap_t &nodes)
+void Serial::processLine()
 {
 	//replace end of line by end of string
 	(*logbuf.plinebuf) = '\0';
 	std::string logline(logbuf.linebuf);
-	utl::replace(logline,',',';');
+	//utl::replace(logline,',',';');
 	//reset the line buffer pointer to the beginning of the line
 	logbuf.plinebuf = logbuf.linebuf;
-	
-	
-	strmap notif_map;
-	utl::str2map( logline, notif_map);
-	if(utl::exists(notif_map,"NodeId"))
+	if(logline.length() != 0)
 	{
-		std::string t_Id = notif_map["NodeId"];
-		int l_Id = std::stoi(t_Id);
-		if(utl::exists(notif_map,"RTX"))//If this is a retransmitted frame
-		{
-			utl::TakeParseTo(logline,';');//remove the first section "RTX:ttl;"
-			logbuf.lastLinesDiscardOld();
-			bool isDuplicate = logbuf.lastLinesCheck(logline);
-			//Here should be taken out the duplicaes,
-			// and release it for normal processing otherwise
-			if(isDuplicate)
-			{
-				Log::cout << "ser\tDiscarded Duplicate: "<< logline << Log::Debug();
-				return;
-			}
-		}
-		logbuf.lastLinesAdd(logline);
-		
-		if(utl::exists(notif_map,"BME280"))
-		{
-			if(NodesMeasures.find(l_Id) != NodesMeasures.end())
-			if(NodesMeasures[l_Id].isReady)
-			{
-				NodesMeasures[l_Id].set_all_measures_Text(notif_map["BME280"]);
-				
-				sensor_measure_t temperature,humidity,pressure;
-				temperature.time = logbuf.time_now;
-				humidity.time = logbuf.time_now;
-				pressure.time = logbuf.time_now;
-
-				temperature.value = NodesMeasures[l_Id].get_float_temperature();
-				humidity.value = NodesMeasures[l_Id].get_float_humidity();
-				pressure.value = NodesMeasures[l_Id].get_float_pressure();
-				
-				nodes[l_Id]["Temperature"].push_back(temperature);
-				nodes[l_Id]["Humidity"].push_back(humidity);
-				nodes[l_Id]["Pressure"].push_back(pressure);
-				
-				logbuf.currentlines.push_back(	logbuf.day + "\t" + logbuf.time + "\t" 
-										+ "NodeId:" + std::to_string(l_Id)
-										+ ";Temperature:" + NodesMeasures[l_Id].get_temperature());
-										
-				logbuf.currentlines.push_back(	logbuf.day + "\t" + logbuf.time + "\t" 
-										+ "NodeId:" + std::to_string(l_Id)
-										+ ";Humidity:" + NodesMeasures[l_Id].get_humidity());
-				logbuf.currentlines.push_back(	logbuf.day + "\t" + logbuf.time + "\t" 
-										+ "NodeId:" + std::to_string(l_Id)
-										+ ";Pressure:" + NodesMeasures[l_Id].get_pressure());
-			}
-			else
-			{
-				std::cout << "str> Error> SensorId"<<l_Id<<" calib files not loaded" << std::endl;
-			}
-		}
-		else if(utl::exists(notif_map,"Light"))
-		{
-			sensor_measure_t light;
-			light.time = logbuf.time_now;
-
-			std::string t_light = notif_map["Light"];
-			int l_light = std::stoi(t_light);
-			light.value = l_light;
-			
-			nodes[l_Id]["Light"].push_back(light);
-
-			//yes it is a generic log
-			logbuf.currentlines.push_back(	logbuf.day + "\t" + logbuf.time + "\t" + logline);
-		}
-		else if(utl::exists(notif_map,"Temperature"))
-		{
-			sensor_measure_t temper;
-			temper.time = logbuf.time_now;
-
-			std::string t_temper = notif_map["Temperature"];
-			//std::cout << "Temperature>" << t_temper
-			float l_temper = std::stof(t_temper);
-			temper.value = l_temper;
-			
-			nodes[l_Id]["Temperature"].push_back(temper);
-
-			//yes it is a generic log
-			logbuf.currentlines.push_back(	logbuf.day + "\t" + logbuf.time + "\t" + logline);
-		}
-		else if(utl::exists(notif_map,"was"))//events
-		{
-			sensor_measure_t reset_evt;
-			reset_evt.time = logbuf.time_now;
-
-			if(utl::compare(notif_map["was"],"Reset"))
-			{
-				reset_evt.value = 1;
-				nodes[l_Id]["Reset"].push_back(reset_evt);
-				//yes it is a generic log
-				logbuf.currentlines.push_back(	logbuf.day + "\t" + logbuf.time + "\t" + logline);
-			}
-
-		}
-		else if(utl::exists(notif_map,"is"))//current states
-		{
-			sensor_measure_t state;
-			state.time = logbuf.time_now;
-
-			if(utl::compare(notif_map["is"],"Alive"))
-			{
-				state.value = 1;
-				nodes[l_Id]["Alive"].push_back(state);
-				//yes it is a generic log
-				logbuf.currentlines.push_back(	logbuf.day + "\t" + logbuf.time + "\t" + logline);
-			}
-
-		}
-		else//other logs that do not need pre-formatting
-		{
-			logbuf.currentlines.push_back(	logbuf.day + "\t" + logbuf.time + "\t" + logline);
-		}
+		//logbuf.currentlines.push_back(	logbuf.day + "\t" + logbuf.time + "\t" + logline);
+		logbuf.currentlines.push_back(logline);
 	}
 }
-
 //we use Serial::buf for data and Serial::n for data size
 //isReady is protected by the update that has to change the .n value
-NodeMap_t Serial::processBuffer()
+void Serial::processBuffer()
 {
-	NodeMap_t nodes;
-	
 	clearBuffer();//return only the last gathered data
 	
 	//std::cout << "DBG" << std::endl;
@@ -523,7 +389,7 @@ NodeMap_t Serial::processBuffer()
 			{
 				logbuf.newLine = true;
 				(*logbuf.plinebuf) = (*buf_w);
-				processLine(nodes);
+				processLine();
 			}
 			else if(isp)//skip the CR and any other control
 			{
@@ -537,10 +403,9 @@ NodeMap_t Serial::processBuffer()
 	{
 		Log::cout << "ser\tProcessed " << logbuf.currentlines.size() << "Line(s)" << Log::Debug();
 	}
-	return nodes;
 }
 
-void Serial::send(char* buffer,int size)
+void Serial::send(const char* buffer,int size)
 {
 	write(fd,buffer,size);
 }
