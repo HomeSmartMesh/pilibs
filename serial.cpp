@@ -302,7 +302,7 @@ void Serial::logBuffer()
 	//std::cout << "[nb lines]" << logbuf.currentlines.size() << std::endl;
 	for(std::string cl : logbuf.currentlines)
 	{
-		//log(cl);
+		Log::cout << "ser\t" << cl << Log::Info();
 	}
 }
 
