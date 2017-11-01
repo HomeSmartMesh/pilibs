@@ -35,6 +35,8 @@ ________________________________________________________________________________
 
 #include "mqtt.hpp"
 
+#include "mesh.hpp"
+
 //for printf
 #include <stdio.h>
 //for stdout
@@ -82,15 +84,6 @@ mqtt_c::mqtt_c(strmap &conf,Serial &l_rfcom) : mosquittopp("streamer"),rfcom(l_r
     }
 
 };
-
-void mqtt_send_RGB_Status(Serial &l_str,int TargetNodeId,int R,int G,int B)
-{
-	char text[31];
-	int nbWrite = sprintf(text,"rgb 0x%02x 0x%02x 0x%02x 0x%02x\r",TargetNodeId,R,G,B);
-	l_str.send(text,nbWrite);
-	std::string s(text);
-	Log::cout << "ser\t" << s << Log::Debug();
-}
 
 void mqtt_send_HEAT_Value(Serial &l_str,int TargetNodeId,int val)
 {
@@ -143,7 +136,7 @@ void mqtt_c::on_message(const struct mosquitto_message *message)
                 rgb.G = ((hxVal >> 8) & 0xFF); 
                 rgb.B = ((hxVal) & 0xFF);
                 Log::cout << "mqtt"<<"\t"<<"=> NodeId:"<< rgb.NodeId << " RGB: ("<< rgb.R <<","<< rgb.G <<","<< rgb.B <<")"<< Log::Debug();
-                mqtt_send_RGB_Status(rfcom,rgb.NodeId,rgb.R,rgb.G,rgb.B);
+                mesh::msg::color_txt(rfcom,rgb.NodeId,rgb.R,rgb.G,rgb.B);
             }
         }
         else if(Text.find("Heat")==0)
@@ -187,7 +180,7 @@ void decode_json_color(std::string topic,std::string message,Serial &rfcom)
             int G = std::stoi(jMsg["Green"].dump());
             int B = std::stoi(jMsg["Blue"].dump());
             Log::cout << "mqtt"<<"\t"<<"=> NodeId:"<< NodeId << " RGB: ("<< R <<","<< G <<","<< B <<")"<< Log::Debug();
-            mqtt_send_RGB_Status(rfcom,NodeId,R,G,B);
+            mesh::msg::color_txt(rfcom,NodeId,R,G,B);
         }
         else
         {

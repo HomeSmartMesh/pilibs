@@ -38,12 +38,6 @@ ________________________________________________________________________________
 #include "utils.hpp"
 #include "serial.hpp"
 
-typedef struct RGB_data
-{
-	int sendCount;
-	int R,G,B;
-	int NodeId;
-}RGB_data_t;
 
 class mqtt_c : public mosqpp::mosquittopp
 {

@@ -61,6 +61,19 @@ typedef std::vector<std::string> strvect;
 // temperature in DegC, resolution is 0.01 DegC. Output value of “5123” equals 51.23 DegC.
 // humidity in %RH as unsigned 32 bit integer in Q22.10 format (22 integer and 10 fractional bits).
 // Output value of “47445” represents 47445/1024 = 46.333 %RH
+typedef struct RGB_data
+{
+	int sendCount;
+	int R,G,B;
+	int NodeId;
+}RGB_data_t;
+
+struct color_t
+{
+	uint8_t R;
+	uint8_t G;
+	uint8_t B;
+};
 
 struct sensor_line_t
 {
