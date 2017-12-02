@@ -47,6 +47,9 @@ ________________________________________________________________________________
 #include "Poco/Net/HTTPRequest.h"
 #include "Poco/URI.h"
 
+#include "json.hpp"
+using json = nlohmann::json;
+
 class client_c
 {
 public:
@@ -62,7 +65,7 @@ class webserver_c
 {
 public:
 	webserver_c();
-	webserver_c(strmap &v_conf);
+	webserver_c(json &v_conf);
 public:
 	void 		sendLines(std::vector<std::string> &lines);
 	void 		broadcast(std::string &update);			//to all connected clients
@@ -75,7 +78,7 @@ public:
 private:
 	Poco::Net::HTTPServer *p_srv;
 	client_c				client;
-	strmap conf;
+	json conf;
 
 };
 

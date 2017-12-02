@@ -45,7 +45,8 @@ ________________________________________________________________________________
 #include <cstdint>
 #include <string>
 
-
+#include "json.hpp"
+using json = nlohmann::json;
 
 class bme_measures_c
 {
@@ -98,7 +99,7 @@ class bme_measures_c
 		float	pressure;
 	public:
 		void set_all_measures_Text(std::string Measures);
-		void load_calib_data(std::string filename);
+		void load_calib_data(json &node_calib);
 		int32_t	compensate_T_int32();//adc_T provided with m.set_all_measures_8()
 		int32_t	compensate_P_int64();
 		int32_t	compensate_H_int32();

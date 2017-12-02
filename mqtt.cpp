@@ -54,33 +54,41 @@ ________________________________________________________________________________
 using json = nlohmann::json;
 
 //one per app 
-mqtt_c::mqtt_c(strmap &conf,Serial &l_rfcom) : mosquittopp("streamer"),rfcom(l_rfcom)
+mqtt_c::mqtt_c(json &conf,Serial &l_rfcom) : mosquittopp("streamer"),rfcom(l_rfcom)
 {
     isReady = false;
     rgb.sendCount = 0;
 	//logfile : log into a file------------------------------------------------------
-	if(utl::exists(conf,"mqtt_host"))
-	{
-        if(utl::exists(conf,"mqtt_port"))
+    if(( conf.find("disable") != conf.end() ) && !conf["disable"] )
+    {
+        if( conf.find("host") != conf.end() )
         {
-        	mosqpp::lib_init();
-            isReady = true;
-            int keepalive = 60;
-            int port = std::stoi(conf["mqtt_port"]);
-            int res = connect(conf["mqtt_host"].c_str(), port, keepalive);
-            if(res == MOSQ_ERR_SUCCESS)
+            if( conf.find("port") != conf.end() )
             {
-                Log::cout << "mqtt"<<"\t"<<"connecting to " << conf["mqtt_host"] << " : " << conf["mqtt_port"] << Log::Info();
-            }
-            else
-            {
-                Log::cout << "mqtt"<<"\t"<<"X Failed to connect" << Log::Error();
+                mosqpp::lib_init();
+                isReady = true;
+                int keepalive = 60;
+                int port = conf["port"];
+                std::string host = conf["host"];
+                int res = connect(host.c_str(), port, keepalive);
+                if(res == MOSQ_ERR_SUCCESS)
+                {
+                    Log::cout << "mqtt"<<"\t"<<"connecting to " << conf["host"] << " : " << port << Log::Info();
+                }
+                else
+                {
+                    Log::cout << "mqtt"<<"\t"<<"X Failed to connect" << Log::Error();
+                }
             }
         }
-	}
-    if(!isReady)
+        if(!isReady)
+        {
+            Log::cout << "mqtt"<<"\t"<<"X Not Configured, will not be used" << Log::Info();
+        }
+    }
+    else
     {
-        Log::cout << "mqtt"<<"\t"<<"X Not Configured, will not be used" << Log::Info();
+        Log::cout << "mqtt"<<"\t"<<"X disabled, will not be used" << Log::Info();
     }
 
 };
@@ -100,9 +108,14 @@ void mqtt_c::run()
     if(isReady)
     {
         int status = loop(0);//immediate return, 
-        if(status != MOSQ_ERR_SUCCESS)
+        if(status == MOSQ_ERR_CONN_LOST)
         {
+            Log::cout << "mqtt"<<"\t"<<"error connection lost, reconnecting" << Log::Error();
             reconnect();
+        }
+        else if(status != MOSQ_ERR_SUCCESS)
+        {
+            Log::cout << "mqtt"<<"\t"<<"unhandled error status("<<status << ")" << Log::Error();
         }
     }
 }

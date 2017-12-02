@@ -58,15 +58,15 @@ int		Log::level_file = Log::loglevel_None;
 int		Log::level_out = Log::loglevel_None;
 std::stringstream Log::cout;
 
-bool Log::config(strmap &conf)
+bool Log::config(json &conf)
 {
 	bool res = true;
 	
 	//logfile : log into a file------------------------------------------------------
-	if(utl::exists(conf,"logfile"))
+	if( conf.find("logfile") != conf.end() )
 	{
-		std::cout << "log> logfile = " << conf["logfile"] << std::endl;
 		std::string fileName = conf["logfile"];
+		std::cout << "log> logfile = " << fileName << std::endl;
 		logfile.open(fileName.c_str(), (std::ios::out|std::ios::app) );
 		if(!logfile.is_open())
 		{
@@ -74,9 +74,10 @@ bool Log::config(strmap &conf)
 		}
 		else
 		{
-			if(utl::exists(conf,"level_file"))
+			if(conf.find("level_file") != conf.end() )
 			{
-				level_out = std::stoi(conf["level_file"]);
+				std::string lstr = conf["level_file"];
+				level_out = std::stoi(lstr);
 				std::cout << "log> level_file = " << level_file << std::endl;
 			}
 			else
@@ -88,9 +89,10 @@ bool Log::config(strmap &conf)
 
 	//logout is on by default, only a 0 stops it------------------------------------
 	isLogOut = true;//by default
-	if(utl::exists(conf,"level_out"))
+	if(conf.find("level_out") != conf.end())
 	{
-		level_out = std::stoi(conf["level_out"]);
+		std::string lstr = conf["level_out"];
+		level_out = std::stoi(lstr);
 		std::cout << "log> level_out = " << level_out << std::endl;
 	}
 	else

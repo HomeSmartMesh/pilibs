@@ -337,30 +337,56 @@ public:
 
 
 
-webserver_c::webserver_c(strmap &v_conf)
+webserver_c::webserver_c(json &v_conf)
 {
 	p_srv = NULL;
 	conf = v_conf;
 
-	if(utl::exists(conf,"websocket_url"))
+	bool disable_webserver = false;
+	if( conf["webserver"].find("disable") != conf["webserver"].end() )
 	{
-		std::cout << "wsm> =>" << " websocket_url = " << conf["websocket_url"] << std::endl;
-		
-		URI uri(conf["websocket_url"]);
-		int port = uri.getPort();
-		std::cout << "    starting server at port : " << port << std::endl;
-		p_srv = new HTTPServer(new RequestHandlerFactory, port);
-		
-		p_srv->start();
+		disable_webserver = conf["webserver"]["disable"];
+	}
+
+	if(disable_webserver)
+	{
+		std::cout << "wsm>" << " X : webserver disabled, Webserver will not be started" << std::endl;
+	}
+	else 
+	{
+		if( conf["webserver"].find("websocket_url") != conf["webserver"].end() )
+		{
+			std::string str_url = conf["webserver"]["websocket_url"];
+			std::cout << "wsm> =>" << " websocket_url = " << str_url << std::endl;
+			
+			URI uri(str_url);
+			int port = uri.getPort();
+			std::cout << "    starting server at port : " << port << std::endl;
+			p_srv = new HTTPServer(new RequestHandlerFactory, port);
+			
+			p_srv->start();
+		}
+		else
+		{
+			std::cout << "wsm>" << " X : 'websocket_url' parameter not provided, Webserver will not be started" << std::endl;
+		}
+	}
+	
+	bool disable_weblcient = false;
+	if(conf["webclient"].find("disable") != conf["webclient"].end())
+	{
+		disable_weblcient = conf["webclient"]["disable"];
+	}
+
+	if(disable_weblcient)
+	{
+		std::cout << "wsm>" << " X : No HTTP Post Client" << std::endl;
+		client.isReady = false;
 	}
 	else
 	{
-		std::cout << "wsm>" << " X : 'websocket_url' parameter not provided, Webserver will not be started" << std::endl;
-	}
-	
-	if(utl::exists(conf,"HTTP_POST"))
-	{
-		client.uri = URI(conf["HTTP_POST"]);
+		std::string post_str = conf["webclient"]["http_post"];
+		client.uri = URI(post_str);
 		std::string path(client.uri.getPathAndQuery());
 		if (path.empty()) path = "/";
 		
@@ -376,11 +402,6 @@ webserver_c::webserver_c(strmap &v_conf)
 										<< ") path(" << path
 										<< ")" << std::endl;
 		client.isReady = true;
-	}
-	else
-	{
-		std::cout << "wsm>" << " X : No HTTP Post Client" << std::endl;
-		client.isReady = false;
 	}
 	
 }

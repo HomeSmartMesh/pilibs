@@ -143,81 +143,45 @@ Serial::Serial()
 {
 	isReady = false;
 }
-Serial::Serial(strmap &conf)
+Serial::Serial(json &conf,json &calib)
 {
-	if(!config(conf))
+	if(!config(conf,calib))
 	{
 		std::cout << "str> X :Serial Port not configured, will not be used" << std::endl;
 		
 	}
 }
 
-bool Serial::config(strmap &conf)
+bool Serial::config(json &conf,json &calib)
 {
 	bool res = true;
 	
-	//conf = v_conf;
-	
-	exepath = conf["exepath"];
-	
-	//logfile : log into a file------------------------------------------------------
-	if(utl::exists(conf,"logfile"))
-	{
-		std::cout << "str> logfile = " << conf["logfile"] << std::endl;
-		start_logfile(conf["logfile"]);
-	}
-
-	//logout is on by default, only a 0 stops it------------------------------------
-	if(utl::exists(conf,"logout"))
-	{
-		std::cout << "str> logout = " << conf["logout"] << std::endl;
-		isLogOut = true;//by default
-		if(conf["logout"] == "0")
-		{
-			isLogOut = false;
-		}
-	}
-	
 	//serial port config------------------------------------------------------------
-	if(utl::exists(conf,"portname"))
-	{
-		std::cout << "str> port = " << conf["portname"] << std::endl;
+    if(( conf.find("disable") != conf.end() ) && !conf["disable"] )
+    {
+		std::string portName = conf["portname"];
+		std::cout << "str> port = " << portName << std::endl;
 		std::string port_baud = "115200";
-		if(utl::exists(conf,"portbaud"))
+		if( conf.find("portbaud") != conf.end() )
 		{
 			port_baud = conf["portbaud"];
 		}
-		start(conf["portname"],port_baud);
+		start(portName,port_baud);
 	}
 	else
 	{
 		res = false;
 	}
 	
-	
-	std::string NodesList = conf["SensorNodes"];
-	strvect NodesIds = utl::split(NodesList,';');
-	
-	
-	for(std::string str : NodesIds)
+	for(json::iterator node = calib.begin(); node != calib.end(); ++node)
 	{
-		std::cout << "str> Line: " << str << std::endl;
-		std::string fullfilepath = exepath + "/NodeId" + str + ".txt";
-		int l_Id = std::stoi(str);
-		NodesMeasures[l_Id].load_calib_data(fullfilepath);
+		std::cout << "str> loading calib node: " << node.key() << std::endl;
+		int l_Id = std::stoi((std::string)node.key());
+		NodesMeasures[l_Id].load_calib_data(node.value());
 	}
 	
 	isReady = res;
 	return isReady;
-}
-
-void Serial::start_logfile(std::string fileName)
-{
-	logfile.open(fileName.c_str(), (std::ios::out|std::ios::app) );
-	if(!logfile.is_open())
-	{
-		printf("could not open log file:%s\r\n",fileName.c_str());
-	}
 }
 
 void Serial::start(std::string port_name,std::string baudrate)
@@ -391,10 +355,10 @@ void Serial::processLine(NodeMap_t &nodes)
 		}
 		logbuf.lastLinesAdd(logline);
 		
-		if(utl::exists(notif_map,"BME280"))
+		if(utl::exists(notif_map,"bme280"))
 		{
-			if(NodesMeasures.find(l_Id) != NodesMeasures.end())
-			if(NodesMeasures[l_Id].isReady)
+			if( (NodesMeasures.find(l_Id) != NodesMeasures.end()) &&
+				(NodesMeasures[l_Id].isReady) )
 			{
 				NodesMeasures[l_Id].set_all_measures_Text(notif_map["BME280"]);
 				
@@ -427,41 +391,41 @@ void Serial::processLine(NodeMap_t &nodes)
 				std::cout << "str> Error> SensorId"<<l_Id<<" calib files not loaded" << std::endl;
 			}
 		}
-		else if(utl::exists(notif_map,"Light"))
+		else if(utl::exists(notif_map,"light"))
 		{
 			sensor_measure_t light;
 			light.time = logbuf.time_now;
 
-			std::string t_light = notif_map["Light"];
+			std::string t_light = notif_map["light"];
 			int l_light = std::stoi(t_light);
 			light.value = l_light;
 			
-			nodes[l_Id]["Light"].push_back(light);
+			nodes[l_Id]["light"].push_back(light);
 
 			//yes it is a generic log
 			logbuf.currentlines.push_back(	logbuf.day + "\t" + logbuf.time + "\t" + logline);
 		}
-		else if(utl::exists(notif_map,"Temperature"))
+		else if(utl::exists(notif_map,"temperature"))
 		{
 			sensor_measure_t temper;
 			temper.time = logbuf.time_now;
 
-			std::string t_temper = notif_map["Temperature"];
+			std::string t_temper = notif_map["temperature"];
 			//std::cout << "Temperature>" << t_temper
 			float l_temper = std::stof(t_temper);
 			temper.value = l_temper;
 			
-			nodes[l_Id]["Temperature"].push_back(temper);
+			nodes[l_Id]["temperature"].push_back(temper);
 
 			//yes it is a generic log
 			logbuf.currentlines.push_back(	logbuf.day + "\t" + logbuf.time + "\t" + logline);
 		}
-		else if(utl::exists(notif_map,"was"))//events
+		else if(utl::exists(notif_map,"event"))//events
 		{
 			sensor_measure_t reset_evt;
 			reset_evt.time = logbuf.time_now;
 
-			if(utl::compare(notif_map["was"],"Reset"))
+			if(utl::compare(notif_map["event"],"Reset"))
 			{
 				reset_evt.value = 1;
 				nodes[l_Id]["Reset"].push_back(reset_evt);
@@ -470,12 +434,12 @@ void Serial::processLine(NodeMap_t &nodes)
 			}
 
 		}
-		else if(utl::exists(notif_map,"is"))//current states
+		else if(utl::exists(notif_map,"status"))//current states
 		{
 			sensor_measure_t state;
 			state.time = logbuf.time_now;
 
-			if(utl::compare(notif_map["is"],"Alive"))
+			if(utl::compare(notif_map["status"],"Alive"))
 			{
 				state.value = 1;
 				nodes[l_Id]["Alive"].push_back(state);
@@ -486,6 +450,7 @@ void Serial::processLine(NodeMap_t &nodes)
 		}
 		else//other logs that do not need pre-formatting
 		{
+			std::cout << "str> Warn> Unkown Protocol: "<<logline << std::endl;
 			logbuf.currentlines.push_back(	logbuf.day + "\t" + logbuf.time + "\t" + logline);
 		}
 	}
@@ -535,7 +500,8 @@ NodeMap_t Serial::processBuffer()
 	}
 	if(!logbuf.currentlines.empty())
 	{
-		Log::cout << "ser\tProcessed " << logbuf.currentlines.size() << "Line(s)" << Log::Debug();
+		Log::cout << "ser\tProcessed " << logbuf.currentlines.size() << " Line(s)" << Log::Debug();
+		//Log::cout << logbuf.currentlines[0] << " 1st line" << Log::Debug();
 	}
 	return nodes;
 }

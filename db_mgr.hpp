@@ -36,12 +36,15 @@ database manager : RAM and Files mirroring
 
 */
 
-//for strmap
 #include "utils.hpp"
+
 #include <string>
 #include <vector>
 //for file
 #include <fstream>
+
+#include "json.hpp"
+using json = nlohmann::json;
 
 class proc_day_entrie_c
 {
@@ -79,9 +82,9 @@ class db_manager_c
 {
 public:
 	db_manager_c();
-	db_manager_c(strmap &v_conf);
+	db_manager_c(json &v_conf);
 public:
-	bool config(strmap &v_conf);
+	bool config(json &v_conf);
 	void load();
 	void handle_request(const std::string &request,std::string &response);
 	void addMeasures(NodeMap_t &NodesSensorsVals);
@@ -96,7 +99,7 @@ public:
 	db_files_list_t	Files;
 private:
 	
-	strmap conf;
+	json conf;
 
 };
 

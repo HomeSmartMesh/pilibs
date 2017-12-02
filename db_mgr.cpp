@@ -63,17 +63,17 @@ db_manager_c::db_manager_c()
 
 }
 
-db_manager_c::db_manager_c(strmap &v_conf)
+db_manager_c::db_manager_c(json &v_conf)
 {
 	config(v_conf);
 }
 
-bool db_manager_c::config(strmap &v_conf)
+bool db_manager_c::config(json &v_conf)
 {
 	conf = v_conf;
-	if(utl::exists(conf,"dbpath"))
+	if( conf.find("path") != conf.end() )
 	{
-		dbpath = conf["dbpath"];
+		dbpath = conf["path"];
 	}
 	return true;
 }
@@ -120,92 +120,100 @@ void db_manager_c::load()
 {
 	utl::time_u	load_start = utl::get_start();
 	long long nbLoadedSamples = 0; 
-	if(utl::exists(conf,"dbloadpaths"))
-	{
-		cout << "dbm>loading files " << std::endl;
-		path p(conf["dbloadpaths"]);
-		
-		try
+    if(( conf.find("disable") != conf.end() ) && !conf["disable"] )
+    {
+		if( conf.find("loadpaths") != conf.end() )
 		{
-			if (exists(p) && is_directory(p))
+			cout << "dbm>loading files " << std::endl;
+			std::string loadpaths = conf["loadpaths"];
+			path p(loadpaths);
+			
+			try
 			{
-				for (directory_entry& x : directory_iterator(p))
+				if (exists(p) && is_directory(p))
 				{
-					cout << "    " << x.path() << '\n'; 
-					if(is_directory(x.path()))
-						for (directory_entry& f : directory_iterator(x.path()))
-						{
-							std::string filename = f.path().string();
-							cout << "        " << filename << std::endl;
-							//get Node Id and params
-							int year,month;
-							std::string SensorName;
-							int NodeId;
-							if (splitPath2Names(filename,year,month,NodeId,SensorName))
+					for (directory_entry& x : directory_iterator(p))
+					{
+						cout << "    " << x.path() << '\n'; 
+						if(is_directory(x.path()))
+							for (directory_entry& f : directory_iterator(x.path()))
 							{
-								std::tm timeinfo;
-								timeinfo.tm_year = year - 1900;//standard say so
-								timeinfo.tm_mon = month-1;
-								timeinfo.tm_isdst = 0;//false as if it applies, it will take one hour off time-=1h
-								
-								std::ifstream ifile;
-								ifile.open(filename.c_str(), std::ios::in );
-								std::string line;
-								while (std::getline(ifile, line))
+								std::string filename = f.path().string();
+								cout << "        " << filename << std::endl;
+								//get Node Id and params
+								int year,month;
+								std::string SensorName;
+								int NodeId;
+								if (splitPath2Names(filename,year,month,NodeId,SensorName))
 								{
-									strvect cells = utl::split(line,'\t');
-									if(cells.size() == 3)//3 columns expected
+									std::tm timeinfo;
+									timeinfo.tm_year = year - 1900;//standard say so
+									timeinfo.tm_mon = month-1;
+									timeinfo.tm_isdst = 0;//false as if it applies, it will take one hour off time-=1h
+									
+									std::ifstream ifile;
+									ifile.open(filename.c_str(), std::ios::in );
+									std::string line;
+									while (std::getline(ifile, line))
 									{
-										std::string &day_txt = cells[0];
-										std::string &time_txt = cells[1];
-										std::string &value_txt = cells[2];
-
-										sensor_measure_t Measure;
-										Measure.value = std::stof(value_txt);
-
-										timeinfo.tm_mday = std::stoi(day_txt);
-										strvect timevals = utl::split(time_txt,':');
-										if(timevals.size() == 3)
+										strvect cells = utl::split(line,'\t');
+										if(cells.size() == 3)//3 columns expected
 										{
-											timeinfo.tm_hour = std::stoi(timevals[0]);
-											timeinfo.tm_min = std::stoi(timevals[1]);
-											timeinfo.tm_sec = std::stoi(timevals[2]);
+											std::string &day_txt = cells[0];
+											std::string &time_txt = cells[1];
+											std::string &value_txt = cells[2];
+
+											sensor_measure_t Measure;
+											Measure.value = std::stof(value_txt);
+
+											timeinfo.tm_mday = std::stoi(day_txt);
+											strvect timevals = utl::split(time_txt,':');
+											if(timevals.size() == 3)
+											{
+												timeinfo.tm_hour = std::stoi(timevals[0]);
+												timeinfo.tm_min = std::stoi(timevals[1]);
+												timeinfo.tm_sec = std::stoi(timevals[2]);
+											}
+											else
+											{
+												std::cout << "Error: unexpected time format" << std::endl;
+											}
+											Measure.time = std::mktime(&timeinfo);
+
+											Nodes[NodeId][SensorName].push_back(Measure);
+											nbLoadedSamples++;
 										}
 										else
 										{
-											std::cout << "Error: unexpected time format" << std::endl;
+											std::cout << "Error: 3 columns expected" << std::endl;
 										}
-										Measure.time = std::mktime(&timeinfo);
-
-										Nodes[NodeId][SensorName].push_back(Measure);
-										nbLoadedSamples++;
-									}
-									else
-									{
-										std::cout << "Error: 3 columns expected" << std::endl;
 									}
 								}
+								
 							}
-							
-						}
+					}
 				}
+				else
+				cout << p << " does not exist\n";
 			}
-			else
-			  cout << p << " does not exist\n";
-		}
 
-		catch (const filesystem_error& ex)
-		{
-			cout << ex.what() << '\n';
+			catch (const filesystem_error& ex)
+			{
+				cout << ex.what() << '\n';
+			}
+			if(nbLoadedSamples > 0)
+			{
+				std::cout << "dbm> loaded " << nbLoadedSamples<< " Measures in " << utl::get_stop(load_start) << std::endl;
+			}
 		}
-		if(nbLoadedSamples > 0)
+		else
 		{
-			std::cout << "dbm> loaded " << nbLoadedSamples<< " Measures in " << utl::get_stop(load_start) << std::endl;
+			std::cout << "dbm> X :'loadpaths' parameter not available, databse will not be used" << std::endl;
 		}
 	}
 	else
 	{
-		std::cout << "dbm> X :'dbloadpaths' parameter not available, databse will not be used" << std::endl;
+			std::cout << "dbm> X :database disabled, will not be loaded" << std::endl;
 	}
 		
 }

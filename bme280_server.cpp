@@ -253,64 +253,39 @@ void bme_measures_c::set_calib_part4_8(uint8_t *data)
 
 }
 
-void bme_measures_c::load_calib_data(std::string filename)
+void bme_measures_c::load_calib_data(json &node_calib)
 {
-	std::ifstream 	calibfile;
-	calibfile.open(filename);
-	if(calibfile.is_open())
-	{
-		std::cout << "Loading calib file(" << filename << ")" << std::endl;
-		std::string line;
-		while ( getline (calibfile,line) )
-		{
-			strmap params;
-			utl::str2map(line,params);
-			if(utl::exists(params,"NodeId"))
-			{
-				NodeId = atoi(params["NodeId"].c_str());
-				//line 1 : Reg 0x88
-				getline (calibfile,line);
-				utl::TakeParseTo(line,':');
-				utl::remove_spaces(line);
-				utl::remove_0x(line);
-				uint8_t data_vals[10];
-				std::cout << "T1:" << line << std::endl;
-				utl::hextext2data(line,data_vals,10);
-				set_calib_part1_10(data_vals);
-				//line 2 : Reg 0x92
-				getline (calibfile,line);
-				utl::TakeParseTo(line,':');
-				utl::remove_spaces(line);
-				utl::remove_0x(line);
-				std::cout << "T2:" << line << std::endl;
-				utl::hextext2data(line,data_vals,10);
-				set_calib_part2_10(data_vals);
-				//line 3 : Reg 0x9C
-				getline (calibfile,line);
-				utl::TakeParseTo(line,':');
-				utl::remove_spaces(line);
-				utl::remove_0x(line);
-				std::cout << "T3:" << line << std::endl;
-				utl::hextext2data(line,data_vals,10);
-				set_calib_part3_6(data_vals);
-				//line 4 : Reg 0xE1
-				getline (calibfile,line);
-				utl::TakeParseTo(line,':');
-				utl::remove_spaces(line);
-				utl::remove_0x(line);
-				std::cout << "T4:" << line << std::endl;
-				utl::hextext2data(line,data_vals,10);
-				set_calib_part4_8(data_vals);
-				
-				isReady = true;
-			}
-			
-		}
-	}
-	else
-	{
-		std::cout << "No Calib file found(" << filename << ")" << std::endl;
-	}
+
+	std::string line = node_calib["Reg0x88"];
+	utl::remove_spaces(line);
+	utl::remove_0x(line);
+	uint8_t data_vals[10];
+	//std::cout << "T1:" << line << std::endl;
+	utl::hextext2data(line,data_vals,10);
+	set_calib_part1_10(data_vals);
+
+	line = node_calib["Reg0x92"];
+	utl::remove_spaces(line);
+	utl::remove_0x(line);
+	//std::cout << "T2:" << line << std::endl;
+	utl::hextext2data(line,data_vals,10);
+	set_calib_part2_10(data_vals);
+
+	line = node_calib["Reg0x9C"];
+	utl::remove_spaces(line);
+	utl::remove_0x(line);
+	//std::cout << "T3:" << line << std::endl;
+	utl::hextext2data(line,data_vals,10);
+	set_calib_part3_6(data_vals);
+
+	line = node_calib["Reg0xE1"];
+	utl::remove_spaces(line);
+	utl::remove_0x(line);
+	//std::cout << "T4:" << line << std::endl;
+	utl::hextext2data(line,data_vals,10);
+	set_calib_part4_8(data_vals);
+
+	isReady = true;
 	
 }
 

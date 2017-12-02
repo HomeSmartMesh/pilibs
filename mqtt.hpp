@@ -38,11 +38,13 @@ ________________________________________________________________________________
 #include "utils.hpp"
 #include "serial.hpp"
 
+#include "json.hpp"
+using json = nlohmann::json;
 
 class mqtt_c : public mosqpp::mosquittopp
 {
 	public:
-		mqtt_c(strmap &conf,Serial &l_rfcom);
+		mqtt_c(json &conf,Serial &l_rfcom);
         void run();
 		void say_hello();
 		void on_connect(int rc);

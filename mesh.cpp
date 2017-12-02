@@ -34,6 +34,8 @@ mesh protocol construction
 
 #include "mesh.hpp"
 
+#include <iostream>
+
 static uint8_t Source_Node_Id = 255;
 
 void mesh::set_source_nodId(uint8_t Id)

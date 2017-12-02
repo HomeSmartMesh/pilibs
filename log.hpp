@@ -44,6 +44,9 @@ ________________________________________________________________________________
 
 #include "utils.hpp"
 
+#include "json.hpp"
+using json = nlohmann::json;
+
 class Log
 {
 public:
@@ -53,7 +56,7 @@ public:
 	static const int loglevel_Info 		;
 	static const int loglevel_Debug 	;
 public:
-	static bool config(strmap &conf);
+	static bool config(json &conf);
 public:
 	static int fd;
 public:

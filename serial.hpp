@@ -54,6 +54,9 @@ ________________________________________________________________________________
 
 #include "utils.hpp"
 
+#include "json.hpp"
+using json = nlohmann::json;
+
 #define buf_size 2000
 
 class LogBuffer_c
@@ -84,7 +87,7 @@ class Serial
 {
 public:
 	Serial();//constructor
-	Serial(strmap &conf);//constructor
+	Serial(json &conf,json &calib);//constructor
 public:
 	int fd;
 	LogBuffer_c logbuf;
@@ -97,7 +100,7 @@ public:
 	bool			isLogOut;
 	bool			isReady;
 public:
-	bool 		config(strmap &conf);
+	bool 		config(json &conf,json &calib);
 	void 		start(std::string port_name,std::string baudrate);
 	void 		start_logfile(std::string fileName);
 	bool 		update();
