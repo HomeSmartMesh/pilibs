@@ -116,6 +116,8 @@ void mqtt_c::run()
         else if(status != MOSQ_ERR_SUCCESS)
         {
             Log::cout << "mqtt"<<"\t"<<"unhandled error status("<<status << ")" << Log::Error();
+            //issues on auto boot, reconnect in this case as well
+            reconnect();
         }
     }
 }

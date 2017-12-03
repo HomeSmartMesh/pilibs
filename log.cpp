@@ -130,12 +130,12 @@ void Log::log(const std::string &str,const int &level)
 	std::string d = utl::getDay();
 	std::string t = utl::getTime();
 	//Debug 4 >= Info 3
-	if(level_out >= level)
+	if(level <= level_out)
 	{
 		std::cout << d << " " << t << "\t";
 		std::cout << logstr(level) << "\t" << str << std::endl;
 	}
-	if( (level_file >= level) && logfile.is_open())
+	if( (level <= level_file) && logfile.is_open())
 	{
 		logfile << d << " " << t << "\t";
 		logfile << logstr(level) << "\t"<< str << std::endl;

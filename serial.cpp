@@ -229,7 +229,6 @@ bool LogBuffer_c::update(int fd)
 	n = read (fd, buf, sizeof buf);  // read up to 100 characters if ready to read
 	if(n > 0)
 	{
-		//std::cout << "n " << n << std::endl;
 		res = true;
 		//as we want to print it here, we make sure it is null terminated
 		if(n < sizeof buf)
@@ -340,19 +339,34 @@ void Serial::processLine(NodeMap_t &nodes)
 	{
 		std::string t_Id = notif_map["NodeId"];
 		int l_Id = std::stoi(t_Id);
-		if(utl::exists(notif_map,"RTX"))//If this is a retransmitted frame
-		{
-			utl::TakeParseTo(logline,';');//remove the first section "RTX:ttl;"
-			logbuf.lastLinesDiscardOld();
-			bool isDuplicate = logbuf.lastLinesCheck(logline);
-			//Here should be taken out the duplicaes,
-			// and release it for normal processing otherwise
+
+		#ifdef OLD_RETRANSMISSION_CHECK
+			if(utl::exists(notif_map,"RTX"))//If this is a retransmitted frame
+			{
+				utl::TakeParseTo(logline,';');//remove the first section "RTX:ttl;"
+				
+				logbuf.lastLinesDiscardOld();//remove from lastLines[] what is loder than 2 sec
+				bool isDuplicate = logbuf.lastLinesCheck(logline);//if the line was available in lastLines[]
+				//Here should be taken out the duplicaes,
+				// and release it for normal processing otherwise
+				if(isDuplicate)
+				{
+					Log::cout << "ser\tDiscarded Duplicate: "<< logline << Log::Debug();
+					return;
+				}
+			}
+		#else
+			logbuf.lastLinesDiscardOld();//remove from lastLines[] what is loder than 2 sec
+			bool isDuplicate = logbuf.lastLinesCheck(logline);//if the line was available in lastLines[]
+			// GO OUT Completely "return" so "logline" will not be further processed
 			if(isDuplicate)
 			{
 				Log::cout << "ser\tDiscarded Duplicate: "<< logline << Log::Debug();
 				return;
 			}
-		}
+		#endif
+		
+		//if we reached it here, that means the log line is not duplicate with the previous 2 sec
 		logbuf.lastLinesAdd(logline);
 		
 		if(utl::exists(notif_map,"bme280"))
@@ -360,7 +374,7 @@ void Serial::processLine(NodeMap_t &nodes)
 			if( (NodesMeasures.find(l_Id) != NodesMeasures.end()) &&
 				(NodesMeasures[l_Id].isReady) )
 			{
-				NodesMeasures[l_Id].set_all_measures_Text(notif_map["BME280"]);
+				NodesMeasures[l_Id].set_all_measures_Text(notif_map["bme280"]);
 				
 				sensor_measure_t temperature,humidity,pressure;
 				temperature.time = logbuf.time_now;
@@ -411,7 +425,6 @@ void Serial::processLine(NodeMap_t &nodes)
 			temper.time = logbuf.time_now;
 
 			std::string t_temper = notif_map["temperature"];
-			//std::cout << "Temperature>" << t_temper
 			float l_temper = std::stof(t_temper);
 			temper.value = l_temper;
 			
@@ -464,7 +477,6 @@ NodeMap_t Serial::processBuffer()
 	
 	clearBuffer();//return only the last gathered data
 	
-	//std::cout << "DBG" << std::endl;
 	if(logbuf.n>0)
 	{
 		char * buf_w = logbuf.buf;
