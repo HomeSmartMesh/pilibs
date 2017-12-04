@@ -385,20 +385,20 @@ void Serial::processLine(NodeMap_t &nodes)
 				humidity.value = NodesMeasures[l_Id].get_float_humidity();
 				pressure.value = NodesMeasures[l_Id].get_float_pressure();
 				
-				nodes[l_Id]["Temperature"].push_back(temperature);
-				nodes[l_Id]["Humidity"].push_back(humidity);
-				nodes[l_Id]["Pressure"].push_back(pressure);
+				nodes[l_Id]["temperature"].push_back(temperature);
+				nodes[l_Id]["humidity"].push_back(humidity);
+				nodes[l_Id]["pressure"].push_back(pressure);
 				
 				logbuf.currentlines.push_back(	logbuf.day + "\t" + logbuf.time + "\t" 
 										+ "NodeId:" + std::to_string(l_Id)
-										+ ";Temperature:" + NodesMeasures[l_Id].get_temperature());
+										+ ";temperature:" + NodesMeasures[l_Id].get_temperature());
 										
 				logbuf.currentlines.push_back(	logbuf.day + "\t" + logbuf.time + "\t" 
 										+ "NodeId:" + std::to_string(l_Id)
-										+ ";Humidity:" + NodesMeasures[l_Id].get_humidity());
+										+ ";humidity:" + NodesMeasures[l_Id].get_humidity());
 				logbuf.currentlines.push_back(	logbuf.day + "\t" + logbuf.time + "\t" 
 										+ "NodeId:" + std::to_string(l_Id)
-										+ ";Pressure:" + NodesMeasures[l_Id].get_pressure());
+										+ ";pressure:" + NodesMeasures[l_Id].get_pressure());
 			}
 			else
 			{

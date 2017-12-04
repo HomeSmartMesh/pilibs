@@ -139,7 +139,7 @@ void db_manager_c::load()
 							for (directory_entry& f : directory_iterator(x.path()))
 							{
 								std::string filename = f.path().string();
-								cout << "        " << filename << std::endl;
+								cout << "        " << filename ;
 								//get Node Id and params
 								int year,month;
 								std::string SensorName;
@@ -154,6 +154,7 @@ void db_manager_c::load()
 									std::ifstream ifile;
 									ifile.open(filename.c_str(), std::ios::in );
 									std::string line;
+									long long nbFileLoadedSamples = 0;
 									while (std::getline(ifile, line))
 									{
 										strvect cells = utl::split(line,'\t');
@@ -179,15 +180,16 @@ void db_manager_c::load()
 												std::cout << "Error: unexpected time format" << std::endl;
 											}
 											Measure.time = std::mktime(&timeinfo);
-
 											Nodes[NodeId][SensorName].push_back(Measure);
 											nbLoadedSamples++;
+											nbFileLoadedSamples++;
 										}
 										else
 										{
 											std::cout << "Error: 3 columns expected" << std::endl;
 										}
 									}
+									std::cout << " Nb Samples: " << nbFileLoadedSamples << std::endl;
 								}
 								
 							}
