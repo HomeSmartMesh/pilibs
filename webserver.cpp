@@ -140,7 +140,14 @@ void SafeMessaging_c::remove(const std::string &Key)
 {
 	std::lock_guard<std::mutex> guard(messages_mutex);
 	auto it = Messages.find(Key);
-	Messages.erase(it);
+	if(it != Messages.end())
+	{
+		Messages.erase(it);
+	}
+	else
+	{
+		std::cout << "wbs> Client died without requests  " << std::endl;
+	}
 }
 
 void SafeMessaging_c::poll_any(std::string &Key, std::string &message)
