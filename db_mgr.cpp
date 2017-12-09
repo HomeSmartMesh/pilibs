@@ -371,73 +371,55 @@ void db_manager_c::getUpdate(NodeMap_t &ResVals)
 	std::cout << "dbm> update with " << count << " measures" << std::endl;
 }
 
-void db_manager_c::handle_request(const std::string &request,std::string &response)
+void db_manager_c::handle_update(const std::string &request,std::string &response)
 {
 	utl::start();
-	if(!request.empty())
-	{
-		
-		std::cout << "dbm> request>" << request << std::endl;
-		json jReq = json::parse(request);
-		std::string reqType;
-		if(jReq.find("request") != jReq.end())
-		{
-			if(jReq["request"].find("type") != jReq["request"].end())
-			{
-				reqType = jReq["request"]["type"];
-				std::cout << "dbm> req Type>" << reqType << std::endl;
-			}
-		}
-		if(reqType.find("Duration") == 0)
-		{
-			bool isVerifOK = true;
-			//std::exception_ptr eptr;
-			time_t start,stop;
-			int NodeId;
-			std::string SensorName;
-			try
-			{
-				start 		= std::stoll(jReq["request"]["start"].dump())/1000;
-				stop 		= std::stoll(jReq["request"]["stop"].dump())/1000;
-				NodeId 		= std::stoi(jReq["request"]["NodeId"].dump());
-				SensorName 	= jReq["request"]["SensorName"];
-			}
-			catch(const std::exception& ex)
-			{
-				std::cout << "dbm> !!! Caught exception \"" << ex.what() << "\"!!!\n";
-				isVerifOK = false;
-			}
+	std::cout << "dbm> request>" << request << std::endl;
+	NodeMap_t ResVals;
+	getUpdate(ResVals);
+	response = utl::stringify(ResVals,"update");
+	std::cout << "dbm> response is an update> " << response.length() << " Bytes, prepared in "<< utl::stop() << std::endl;
+}
 
-			if(isVerifOK)
-			{
-				NodeMap_t ResVals;
-				getMeasures(NodeId,SensorName,start,stop,ResVals);
-				json jResp;
-				utl::make_json_resp(NodeId,SensorName,ResVals,jResp,"response");
-				jResp["response"]["id"] = jReq["request"]["id"];
-				jResp["response"]["type"] = "Duration";
-				jResp["response"]["NodeId"] = NodeId;
-				jResp["response"]["SensorName"] = SensorName;
-				
-				response = jResp.dump();
-				std::cout << "dbm> response is an update> " << response.length() << " Bytes, prepared in "<< utl::stop() << std::endl;
-			}
-			else
-			{
-				std::cout << "dbm> request parameters verification Failed "<< utl::stop() << std::endl;
-			}
-		}
-		else if(reqType.find("update") == 0)
-		{
-			NodeMap_t ResVals;
-			getUpdate(ResVals);
-			response = utl::stringify(ResVals,"update");
-			std::cout << "dbm> response is an update> " << response.length() << " Bytes, prepared in "<< utl::stop() << std::endl;
-		}
-		else
-		{
-			std::cout << "dbm> Error : undefined request 'type' " << utl::stop() << std::endl;
-		}
+void db_manager_c::handle_duration(const std::string &request,std::string &response)
+{
+	utl::start();
+	std::cout << "dbm> request>" << request << std::endl;
+	bool isVerifOK = true;
+	//std::exception_ptr eptr;
+	time_t start,stop;
+	int NodeId;
+	std::string SensorName;
+	json jReq = json::parse(request);//double parsing on getRequestType and here
+	try
+	{
+		start 		= std::stoll(jReq["request"]["start"].dump())/1000;
+		stop 		= std::stoll(jReq["request"]["stop"].dump())/1000;
+		NodeId 		= std::stoi(jReq["request"]["NodeId"].dump());
+		SensorName 	= jReq["request"]["SensorName"];
+	}
+	catch(const std::exception& ex)
+	{
+		std::cout << "dbm> !!! Caught exception \"" << ex.what() << "\"!!!\n";
+		isVerifOK = false;
+	}
+
+	if(isVerifOK)
+	{
+		NodeMap_t ResVals;
+		getMeasures(NodeId,SensorName,start,stop,ResVals);
+		json jResp;
+		utl::make_json_resp(NodeId,SensorName,ResVals,jResp,"response");
+		jResp["response"]["id"] = jReq["request"]["id"];
+		jResp["response"]["type"] = "Duration";
+		jResp["response"]["NodeId"] = NodeId;
+		jResp["response"]["SensorName"] = SensorName;
 		
+		response = jResp.dump();
+		std::cout << "dbm> response is an update> " << response.length() << " Bytes, prepared in "<< utl::stop() << std::endl;
+	}
+	else
+	{
+		std::cout << "dbm> request parameters verification Failed "<< utl::stop() << std::endl;
 	}
 }

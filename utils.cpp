@@ -511,3 +511,39 @@ uint16_t utl::crc_Fletcher16( uint8_t const *data, uint8_t count )
 
 	return (sum2 << 8) | sum1;
 }
+
+std::string utl::getRequestType(std::string &request)
+{
+	std::string reqType = request;
+	if(request.empty())
+	{
+		return reqType;
+	}
+
+	bool isParsed = true;
+	json jReq;
+	try
+	{
+		jReq = json::parse(request);
+	}
+	catch(const json::parse_error& e)
+	{
+		std::cout <<"utl> parsing the request failed: "<< e.what() << std::endl;
+		isParsed = false;
+	} catch (...) {
+		std::cout <<"utl> catched unknown exception" << std::endl;
+		isParsed = false;
+	}
+	if(isParsed)
+	{
+		if(jReq.find("request") != jReq.end())
+		{
+			if(jReq["request"].find("type") != jReq["request"].end())
+			{
+				reqType = jReq["request"]["type"];
+			}
+		}
+	}
+
+	return reqType;
+}

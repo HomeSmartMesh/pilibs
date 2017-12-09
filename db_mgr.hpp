@@ -86,7 +86,8 @@ public:
 public:
 	bool config(json &v_conf);
 	void load();
-	void handle_request(const std::string &request,std::string &response);
+	void handle_update(const std::string &request,std::string &response);
+	void handle_duration(const std::string &request,std::string &response);
 	void addMeasures(NodeMap_t &NodesSensorsVals);
 	void getMeasures(int NodeId,std::string SensorName, time_t start, time_t stop,NodeMap_t &ResVals);
 	void getUpdate(NodeMap_t &ResVals);
