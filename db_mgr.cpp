@@ -320,6 +320,16 @@ void db_manager_c::getMeasures(int NodeId,std::string SensorName, time_t start, 
 {
 	std::cout << "dbm> get> " << NodeId << " " <<SensorName	<<" from("  << utl::getDay(start)<<" "<< utl::getTime(start)
 															<<") till(" << utl::getDay(stop)<<" "<< utl::getTime(stop)<< ")" <<std::endl;
+	if(Nodes.find(NodeId)==Nodes.end())
+	{
+		std::cout << "dbm> Warning : NodeId not available : " << NodeId << std::endl;
+		return;
+	}
+	if(Nodes[NodeId].find(SensorName)==Nodes[NodeId].end())
+	{
+		std::cout << "dbm> Warning : SensorName not available. NodeId : " << NodeId << " / "<< SensorName << std::endl;
+		return;
+	}
 	sensor_measures_table_t &db_measures 	= Nodes[NodeId][SensorName];
 	sensor_measures_table_t &resp_measures 	= ResVals[NodeId][SensorName];
 	int count = 0;
@@ -347,8 +357,15 @@ void db_manager_c::getUpdate(NodeMap_t &ResVals)
 		for(auto const& sensor: node.second)
 		{
 			std::string sensorName = sensor.first;
-			ResVals[NodeId][sensorName].push_back(sensor.second.back());
-			count++;
+			if(sensor.second.size() != 0)
+			{
+				ResVals[NodeId][sensorName].push_back(sensor.second.back());
+				count++;
+			}
+			else
+			{
+				std::cout << "dbm> warning: Empty sensor: NodeId " << NodeId << " ; sensorName: "<<sensorName<<std::endl;
+			}
 		}
 	}
 	std::cout << "dbm> update with " << count << " measures" << std::endl;
