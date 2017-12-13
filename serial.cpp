@@ -147,7 +147,7 @@ Serial::Serial(json &conf,json &calib)
 {
 	if(!config(conf,calib))
 	{
-		std::cout << "str> X :Serial Port not configured, will not be used" << std::endl;
+		Log::cout << "str>\tX :Serial Port not configured, will not be used" << Log::Info();
 		
 	}
 }
@@ -160,7 +160,7 @@ bool Serial::config(json &conf,json &calib)
     if(( conf.find("disable") != conf.end() ) && !conf["disable"] )
     {
 		std::string portName = conf["portname"];
-		std::cout << "str> port = " << portName << std::endl;
+		Log::cout << "str>\tport = " << portName << Log::Info();
 		std::string port_baud = "115200";
 		if( conf.find("portbaud") != conf.end() )
 		{
@@ -175,7 +175,7 @@ bool Serial::config(json &conf,json &calib)
 	
 	for(json::iterator node = calib.begin(); node != calib.end(); ++node)
 	{
-		std::cout << "str> loading calib node: " << node.key() << std::endl;
+		Log::cout << "str>\tloading calib node: " << node.key() << Log::Info();
 		int l_Id = std::stoi((std::string)node.key());
 		NodesMeasures[l_Id].load_calib_data(node.value());
 	}
@@ -238,12 +238,12 @@ bool LogBuffer_c::update(int fd)
 		else
 		{
 			buf[(sizeof buf)-1] = '\0';//must insert a null terminated string, otherwise not safe to print nor search,...
-			printf("Warning : Slow app Max Buffer reached, loss of data !!!\r\n");
+			Log::cout << "str\tSlow app Max Buffer reached, loss of data !!!"<< Log::Error();
 		}
 	}
 	else
 	{
-		//std::cout << "Nothing" << std::endl;
+		//Log::cout << "Nothing" << std::endl;
 	}
 	return res;
 }
@@ -262,7 +262,7 @@ bool Serial::update()
 
 void Serial::logBuffer()
 {
-	//std::cout << "[nb lines]" << logbuf.currentlines.size() << std::endl;
+	//Log::cout << "[nb lines]" << logbuf.currentlines.size() << std::endl;
 	for(std::string cl : logbuf.currentlines)
 	{
 		//log(cl);
@@ -286,7 +286,7 @@ void LogBuffer_c::lastLinesDiscardOld()
 		auto &vLine = lastLines.front();
 		if(vLine.time<=oldTime)
 		{
-			//std::cout << "lastline_Remove>" << vLine.line << std::endl;
+			//Log::cout << "lastline_Remove>" << vLine.line << std::endl;
 			lastLines.pop_front();
 		}
 		else
@@ -310,7 +310,7 @@ bool LogBuffer_c::lastLinesCheck(std::string &line)
 			if(utl::compare(line,(*rit).line))
 			{
 				isFound = true;
-				//std::cout << "lastline_Found>" << line << std::endl;
+				//Log::cout << "lastline_Found>" << line << std::endl;
 			}
 		}
 	}
@@ -320,7 +320,7 @@ bool LogBuffer_c::lastLinesCheck(std::string &line)
 void LogBuffer_c::lastLinesAdd(std::string &line)
 {
 	lastLines.push_back({time_now,line});
-	//std::cout << "lastline_add>" << line << std::endl;
+	//Log::cout << "lastline_add>" << line << std::endl;
 }
 
 void Serial::processLine(NodeMap_t &nodes)
@@ -402,7 +402,7 @@ void Serial::processLine(NodeMap_t &nodes)
 			}
 			else
 			{
-				std::cout << "str> Error> SensorId"<<l_Id<<" calib files not loaded" << std::endl;
+				Log::cout << "str>\tSensorId"<<l_Id<<" calib files not loaded" << Log::Error();
 			}
 		}
 		else if(utl::exists(notif_map,"light"))
@@ -463,7 +463,7 @@ void Serial::processLine(NodeMap_t &nodes)
 		}
 		else//other logs that do not need pre-formatting
 		{
-			std::cout << "str> Warn> Unkown Protocol: "<<logline << std::endl;
+			Log::cout << "str>\tUnkown Protocol: "<<logline << Log::Warning();
 			logbuf.currentlines.push_back(	logbuf.day + "\t" + logbuf.time + "\t" + logline);
 		}
 	}

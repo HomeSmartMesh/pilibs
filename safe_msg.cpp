@@ -33,6 +33,8 @@ ________________________________________________________________________________
 */
 #include "safe_msg.hpp"
 
+#include "log.hpp"
+
 //for sleep
 #include <unistd.h>
 
@@ -68,7 +70,7 @@ void SafeMessaging_c::remove(const std::string &Key)
 	}
 	else
 	{
-		std::cout << "wbs> Client died without requests  " << std::endl;
+		Log::cout << "wbs>\tClient died without requests  " << Log::Info();
 	}
 }
 

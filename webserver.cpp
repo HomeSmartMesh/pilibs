@@ -39,6 +39,7 @@ ________________________________________________________________________________
 #include "webserver.hpp"
 
 #include "safe_msg.hpp"
+#include "log.hpp"
 
 #include "Poco/URI.h"
 //for sleep
@@ -154,7 +155,7 @@ class WebSocketRequestHandler: public HTTPRequestHandler
 public:
     void handleRequest(HTTPServerRequest& request, HTTPServerResponse& response)
     {
-		std::cout << "wbs> ---> Websocket Upgrade Request" << std::endl;
+		Log::cout << "wbs> ---> Websocket Upgrade Request" << Log::Info();
         try
         {
             WebSocket ws(request, response);
@@ -216,7 +217,7 @@ public:
         }
         catch (WebSocketException& exc)
         {
-            std::cout <<"wbs> "<< exc.displayText() << std::endl;
+            Log::cout <<"wbs> "<< exc.displayText() << Log::Error();
             switch (exc.code())
             {
             case WebSocket::WS_ERR_HANDSHAKE_UNSUPPORTED_VERSION:
@@ -241,10 +242,10 @@ public:
     HTTPRequestHandler* createRequestHandler(const HTTPServerRequest& request)
     {
 		HTTPRequestHandler* Handler = NULL;
-		std::cout << "wbs> ------------- => New HTTP request" << std::endl;
+		Log::cout << "wbs> ------------- => New HTTP request" << Log::Info();
         //Application& app = Application::instance();
         //app.logger().information("Request from " 
-		std::cout << "wbs>  Request from " 
+		Log::cout << "wbs>  Request from " 
             + request.clientAddress().toString()
             + " -- method: "
             + request.getMethod()
@@ -252,7 +253,7 @@ public:
             + request.getURI()
             + " -- version: "
             + request.getVersion()
-			<< std::endl;
+			<< Log::Info();
         
 		if(request.has("Upgrade") && Poco::icompare(request["Upgrade"], "websocket") == 0)
 		{
@@ -285,7 +286,7 @@ webserver_c::webserver_c(json &v_conf)
 
 	if(disable_webserver)
 	{
-		std::cout << "wsm>" << " X : webserver disabled, Webserver will not be started" << std::endl;
+		Log::cout << "wsm>\t" << " X : webserver disabled, Webserver will not be started" << Log::Info();
 	}
 	else 
 	{
@@ -371,11 +372,11 @@ void webserver_c::post(std::string &update)
 			client.request.setContentLength(update.length());
 			std::ostream& post_stream = session.sendRequest(client.request);
 			post_stream << update;
-			std::cout << "wbs> Posted update: " << update.length() << " Bytes" << std::endl;
+			Log::cout << "wbs>\tPosted update: " << update.length() << " Bytes" << Log::Debug();
 		}
 		catch(ConnectionRefusedException& exc)
 		{
-			std::cout <<"wbs> Post Fail :"<< exc.displayText() << std::endl;
+			Log::cout <<"wbs>\tPost Fail :"<< exc.displayText() << Log::Error();
 		}
 	}
 }

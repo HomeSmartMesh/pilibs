@@ -77,7 +77,7 @@ bool Log::config(json &conf)
 			if(conf.find("level_file") != conf.end() )
 			{
 				std::string lstr = conf["level_file"];
-				level_out = std::stoi(lstr);
+				level_file = std::stoi(lstr);
 				std::cout << "log> level_file = " << level_file << std::endl;
 			}
 			else

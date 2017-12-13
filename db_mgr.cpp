@@ -51,7 +51,6 @@ database manager : RAM and Files mirroring
 
 #include <boost/filesystem.hpp>
 using namespace boost::filesystem;
-using std::cout;
 
 #include "json.hpp"
 using json = nlohmann::json;
@@ -124,7 +123,7 @@ void db_manager_c::load()
     {
 		if( conf.find("loadpaths") != conf.end() )
 		{
-			cout << "dbm>loading files " << std::endl;
+			Log::cout << "dbm>\tloading files " << Log::Info();
 			std::string loadpaths = conf["loadpaths"];
 			path p(loadpaths);
 			
@@ -134,12 +133,12 @@ void db_manager_c::load()
 				{
 					for (directory_entry& x : directory_iterator(p))
 					{
-						cout << "    " << x.path() << '\n'; 
+						Log::cout << "    " << x.path() << Log::Info(); 
 						if(is_directory(x.path()))
 							for (directory_entry& f : directory_iterator(x.path()))
 							{
 								std::string filename = f.path().string();
-								cout << "        " << filename ;
+								Log::cout << "        " << filename <<Log::Info();
 								//get Node Id and params
 								int year,month;
 								std::string SensorName;
@@ -177,7 +176,7 @@ void db_manager_c::load()
 											}
 											else
 											{
-												std::cout << "Error: unexpected time format" << std::endl;
+												Log::cout << "Error: unexpected time format" << Log::Error();
 											}
 											Measure.time = std::mktime(&timeinfo);
 											Nodes[NodeId][SensorName].push_back(Measure);
@@ -186,36 +185,36 @@ void db_manager_c::load()
 										}
 										else
 										{
-											std::cout << "Error: 3 columns expected" << std::endl;
+											Log::cout << "Error: 3 columns expected" << Log::Error();
 										}
 									}
-									std::cout << " Nb Samples: " << nbFileLoadedSamples << std::endl;
+									Log::cout << " Nb Samples: " << nbFileLoadedSamples << Log::Info();
 								}
 								
 							}
 					}
 				}
 				else
-				cout << p << " does not exist\n";
+				Log::cout<<"dbm\t" << p << " does not exist"<< Log::Error();
 			}
 
 			catch (const filesystem_error& ex)
 			{
-				cout << ex.what() << '\n';
+				Log::cout<<"dbm>\t" << ex.what() <<Log::Error();
 			}
 			if(nbLoadedSamples > 0)
 			{
-				std::cout << "dbm> loaded " << nbLoadedSamples<< " Measures in " << utl::get_stop(load_start) << std::endl;
+				Log::cout << "dbm>\tloaded " << nbLoadedSamples<< " Measures in " << utl::get_stop(load_start) << Log::Info();
 			}
 		}
 		else
 		{
-			std::cout << "dbm> X :'loadpaths' parameter not available, databse will not be used" << std::endl;
+			Log::cout << "dbm>\tX :'loadpaths' parameter not available, databse will not be used" << Log::Info();
 		}
 	}
 	else
 	{
-			std::cout << "dbm> X :database disabled, will not be loaded" << std::endl;
+			Log::cout << "dbm>\tX :database disabled, will not be loaded" << Log::Info();
 	}
 		
 }
@@ -226,15 +225,15 @@ void db_manager_c::print()
 	{
 		int NodeId = sensorsTables.first;
 		std::string NodeName = "NodeId" + std::to_string(NodeId);
-		std::cout << NodeName << std::endl;
+		Log::cout << NodeName << Log::Info();
 		for(auto const& Table : sensorsTables.second) 
 		{
 			std::string SensorName = Table.first;
-			std::cout << "\tSensor: " << SensorName << std::endl;
+			Log::cout << "\tSensor: " << SensorName << Log::Info();
 			for(auto const& Measure : Table.second) 
 			{
-				std::cout << "\t\ttime: " << utl::getTime(Measure.time) << std::endl;
-				std::cout << "\t\tval: " << Measure.value << std::endl;
+				Log::cout << "\t\ttime: " << utl::getTime(Measure.time) << Log::Info();
+				Log::cout << "\t\tval: " << Measure.value << Log::Info();
 			}
 		}
 	}
@@ -251,7 +250,7 @@ void db_manager_c::addMeasures(NodeMap_t &NodesSensorsVals)
 	for(auto const& sensorsTables : NodesSensorsVals) 
 	{
 		int NodeId = sensorsTables.first;
-		std::string NodeName = "NodeId" + std::to_string(NodeId);
+		std::string NodeName = "NodeId " + std::to_string(NodeId);
 		Log::cout << "dbm\t" << NodeName << Log::Info();
 		for(auto const& Table : sensorsTables.second) 
 		{
@@ -318,16 +317,16 @@ void db_manager_c::addMeasures(NodeMap_t &NodesSensorsVals)
 
 void db_manager_c::getMeasures(int NodeId,std::string SensorName, time_t start, time_t stop,NodeMap_t &ResVals)
 {
-	std::cout << "dbm> get> " << NodeId << " " <<SensorName	<<" from("  << utl::getDay(start)<<" "<< utl::getTime(start)
-															<<") till(" << utl::getDay(stop)<<" "<< utl::getTime(stop)<< ")" <<std::endl;
+	Log::cout << "dbm>\tget> " << NodeId << " " <<SensorName	<<" from("  << utl::getDay(start)<<" "<< utl::getTime(start)
+															<<") till(" << utl::getDay(stop)<<" "<< utl::getTime(stop)<< ")" <<Log::Info();
 	if(Nodes.find(NodeId)==Nodes.end())
 	{
-		std::cout << "dbm> Warning : NodeId not available : " << NodeId << std::endl;
+		Log::cout << "dbm>\tWarning : NodeId not available : " << NodeId << Log::Warning();
 		return;
 	}
 	if(Nodes[NodeId].find(SensorName)==Nodes[NodeId].end())
 	{
-		std::cout << "dbm> Warning : SensorName not available. NodeId : " << NodeId << " / "<< SensorName << std::endl;
+		Log::cout << "dbm>\tWarning : SensorName not available. NodeId : " << NodeId << " / "<< SensorName << Log::Warning();
 		return;
 	}
 	sensor_measures_table_t &db_measures 	= Nodes[NodeId][SensorName];
@@ -343,13 +342,13 @@ void db_manager_c::getMeasures(int NodeId,std::string SensorName, time_t start, 
 			resp_measures.push_back(Measure);
 		}
 	}
-	std::cout << "dbm> counts/found : " << count << "/" << found << std::endl;
+	Log::cout << "dbm>\tcounts/found : " << count << "/" << found << Log::Info();
 }
 
 //get the last measures of all nodes and sensors
 void db_manager_c::getUpdate(NodeMap_t &ResVals)
 {
-	std::cout << "dbm> get update" << std::endl;
+	Log::cout << "dbm>\tget update" << Log::Info();
 	int count = 0;
 	for(auto const& node : Nodes)
 	{
@@ -364,27 +363,27 @@ void db_manager_c::getUpdate(NodeMap_t &ResVals)
 			}
 			else
 			{
-				std::cout << "dbm> warning: Empty sensor: NodeId " << NodeId << " ; sensorName: "<<sensorName<<std::endl;
+				Log::cout << "dbm>\twarning: Empty sensor: NodeId " << NodeId << " ; sensorName: "<<sensorName<<Log::Warning();
 			}
 		}
 	}
-	std::cout << "dbm> update with " << count << " measures" << std::endl;
+	Log::cout << "dbm>\tupdate with " << count << " measures" << Log::Info();
 }
 
 void db_manager_c::handle_update(const std::string &request,std::string &response)
 {
 	utl::start();
-	std::cout << "dbm> request>" << request << std::endl;
+	Log::cout << "dbm>\trequest>" << request << Log::Info();
 	NodeMap_t ResVals;
 	getUpdate(ResVals);
 	response = utl::stringify(ResVals,"update");
-	std::cout << "dbm> response is an update> " << response.length() << " Bytes, prepared in "<< utl::stop() << std::endl;
+	Log::cout << "dbm> response is an update> " << response.length() << " Bytes, prepared in "<< utl::stop() << Log::Info();
 }
 
 void db_manager_c::handle_duration(const std::string &request,std::string &response)
 {
 	utl::start();
-	std::cout << "dbm> request>" << request << std::endl;
+	Log::cout << "dbm\trequest>" << request << Log::Info();
 	bool isVerifOK = true;
 	//std::exception_ptr eptr;
 	time_t start,stop;
@@ -400,7 +399,7 @@ void db_manager_c::handle_duration(const std::string &request,std::string &respo
 	}
 	catch(const std::exception& ex)
 	{
-		std::cout << "dbm> !!! Caught exception \"" << ex.what() << "\"!!!\n";
+		Log::cout << "dbm> !!! Caught exception \"" << ex.what() << "\"!!!" << Log::Error();
 		isVerifOK = false;
 	}
 
@@ -416,10 +415,10 @@ void db_manager_c::handle_duration(const std::string &request,std::string &respo
 		jResp["response"]["SensorName"] = SensorName;
 		
 		response = jResp.dump();
-		std::cout << "dbm> response is an update> " << response.length() << " Bytes, prepared in "<< utl::stop() << std::endl;
+		Log::cout << "dbm> response is an update> " << response.length() << " Bytes, prepared in "<< utl::stop() << Log::Info();
 	}
 	else
 	{
-		std::cout << "dbm> request parameters verification Failed "<< utl::stop() << std::endl;
+		Log::cout << "dbm> request parameters verification Failed "<< utl::stop() << Log::Error();
 	}
 }

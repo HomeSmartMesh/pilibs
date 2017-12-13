@@ -64,8 +64,11 @@ mqtt_db_c::mqtt_db_c(json &conf) : mosquittopp("iot_db")
             if( conf.find("port") != conf.end() )
             {
                 mosqpp::lib_init();
-                std::string id = conf["id"];
-                reinitialise(id.c_str(), true);
+                if(conf.find("id") != conf.end())
+                {
+                    std::string id = conf["id"];
+                    reinitialise(id.c_str(), true);
+                }
                 isReady = true;
                 int keepalive = 60;
                 int port = conf["port"];
@@ -126,6 +129,7 @@ void mqtt_db_c::on_message(const struct mosquitto_message *message)
     if(topic.find("Nodes/") == 0)
     {
         notifications.push(topic,msg);
+        Log::cout << "mqtt push"<<"\t"<< topic << " : " << msg <<Log::Debug();
     }
     else
     {
@@ -141,23 +145,26 @@ void mqtt_db_c::on_subscribe(int mid, int qos_count, const int *granted_qos)
 
 bool mqtt_db_c::getMeasures(NodeMap_t& measures)
 {
-    std::string topic,msg;
-    while(notifications.poll_any(topic,msg))
+    bool result = false;
+    std::string topic,message;
+    
+    while(notifications.poll_any(topic,message))
     {
+        Log::cout << "mqtt>"<<"\t"<< topic << " : " << message <<Log::Debug();
         utl::TakeParseTo(topic,'/');//remove first section "Nodes/"
         std::string Id = utl::TakeParseTo(topic,'/');//take the second element
         std::string Sensor = utl::TakeParseTo(topic,'/');//take the sensor
-        bool isVerifOK = false;
+        bool isVerifOK = true;
         int NodeId;
         float value;
         try
         {
-            int NodeId = std::stoi(Id);
-            float value = std::stof(msg);
+            NodeId = std::stoi(Id);
+            value = std::stof(message);
         }
         catch(const std::exception& ex)
         {
-            std::cout << "dbm> !!! Caught exception \"" << ex.what() << "\"!!!\n";
+            Log::cout << "mqtt> !!! Caught exception \"" << ex.what() << "\"!!!\n"<< Log::Error();
             isVerifOK = false;
         }
         if(isVerifOK)
@@ -166,6 +173,9 @@ bool mqtt_db_c::getMeasures(NodeMap_t& measures)
             measure.value = value;
             time(&measure.time);//take a timestamp here
             measures[NodeId][Sensor].push_back(measure);
+            result = true;
         }
     }
+
+    return result;
 }

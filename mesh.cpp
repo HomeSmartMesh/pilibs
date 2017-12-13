@@ -60,5 +60,5 @@ void mesh::msg::color_txt(Serial &l_str,uint8_t TargetNodeId,uint8_t R,uint8_t G
     int nbWrite = sprintf(text,"trgb 0x%02x 0x%02x 0x%02x 0x%02x\r",TargetNodeId,R,G,B);
 	l_str.send(text,nbWrite);
 	std::string s(text);
-	std::cout << "rgb> " << s << std::endl;
+	Log::cout << "rgb> " << s << Log::Info();
 }
