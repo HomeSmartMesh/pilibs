@@ -38,13 +38,14 @@ ________________________________________________________________________________
 */
 #include "webserver.hpp"
 
+#include "safe_msg.hpp"
+
 #include "Poco/URI.h"
 //for sleep
 #include <unistd.h>
 
 #include <map>
 #include <string>
-#include <mutex>
 
 #include "Poco/Net/HTTPServer.h"
 #include "Poco/Net/HTTPRequestHandler.h"
@@ -102,79 +103,6 @@ using Poco::Net::HTTPClientSession;
 using Poco::Net::ConnectionRefusedException;
 
 using Poco::Timespan;
-
-
-typedef std::list<std::string> Messages_t;
-typedef std::map<std::string,Messages_t> MessagesMap_t;
-
-
-class SafeMessaging_c
-{
-public:
-	void push(const std::string &Key, const std::string &message);
-	void pull(const std::string &Key, std::string &message);
-	void poll_any(std::string &Key, std::string &message);
-	void push_for_all(const std::string &message);
-	void remove(const std::string &Key);
-private:	
-	MessagesMap_t 	Messages;
-	std::mutex 		messages_mutex;
-};
-
-void SafeMessaging_c::push(const std::string &Key, const std::string &message)
-{
-	std::lock_guard<std::mutex> guard(messages_mutex);
-	Messages[Key].push_back(message);
-}
-void SafeMessaging_c::pull(const std::string &Key, std::string &message)
-{
-	std::lock_guard<std::mutex> guard(messages_mutex);
-	auto &messagelist = Messages[Key];
-	if(!messagelist.empty())
-	{
-		message = messagelist.front();
-		messagelist.pop_front();
-	}
-}
-void SafeMessaging_c::remove(const std::string &Key)
-{
-	std::lock_guard<std::mutex> guard(messages_mutex);
-	auto it = Messages.find(Key);
-	if(it != Messages.end())
-	{
-		Messages.erase(it);
-	}
-	else
-	{
-		std::cout << "wbs> Client died without requests  " << std::endl;
-	}
-}
-
-void SafeMessaging_c::poll_any(std::string &Key, std::string &message)
-{
-	std::lock_guard<std::mutex> guard(messages_mutex);
-	for(auto &msg : Messages)
-	{
-		if(!msg.second.empty())
-		{
-			Key = msg.first;
-			message = msg.second.front();
-			msg.second.pop_front();
-			//break; but return rather
-			return;
-		}
-	}
-}
-
-void SafeMessaging_c::push_for_all(const std::string &message)
-{
-	std::lock_guard<std::mutex> guard(messages_mutex);
-	for(auto &msg : Messages)
-	{
-		//do not care who the first is, push for all
-		msg.second.push_back(message);
-	}
-}
 
 
 SafeMessaging_c requests;

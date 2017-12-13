@@ -28,6 +28,7 @@ ________________________________________________________________________________
 ___________________________________________________________________________________
 
  start date : 04.03.2017
+switched to mqtt_db on 13.12.2017
 
  mqtt application wrapper
  
@@ -36,24 +37,21 @@ ________________________________________________________________________________
 #include <mosquittopp.h>
 
 #include "utils.hpp"
-#include "serial.hpp"
+#include "safe_msg.hpp"
 
 #include "json.hpp"
 using json = nlohmann::json;
 
-class mqtt_c : public mosqpp::mosquittopp
+class mqtt_db_c : public mosqpp::mosquittopp
 {
 	public:
-		mqtt_c(json &conf,Serial &l_rfcom);
+		mqtt_db_c(json &conf);
         void run();
+		bool getMeasures(NodeMap_t& measures);
 		void on_connect(int rc);
 		void on_message(const struct mosquitto_message *message);
 		void on_subscribe(int mid, int qos_count, const int *granted_qos);
         bool isReady;
-
-        void publish_measures(NodeMap_t &NodesSensorsVals);
 	private:
-	Serial &rfcom;
-	RGB_data_t rgb;
-	
+	SafeMessaging_c notifications;
 };

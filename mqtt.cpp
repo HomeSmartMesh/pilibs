@@ -215,13 +215,6 @@ void mqtt_c::on_subscribe(int mid, int qos_count, const int *granted_qos)
     Log::cout << "mqtt"<<"\t"<<"subscribed to message id(" << mid << ")" << Log::Info();
 }
 
-void mqtt_c::say_hello()
-{
-	std::string hello_str = "Hello from my test";
-	publish(NULL, "test/topic", hello_str.size(), hello_str.c_str());
-	std::cout << "published hello message "  << hello_str << std::endl;
-}
-
 void mqtt_c::publish_measures(NodeMap_t &NodesSensorsVals)
 {
 	if(!isReady)
