@@ -66,6 +66,8 @@ mqtt_c::mqtt_c(json &conf,Serial &l_rfcom) : mosquittopp("streamer"),rfcom(l_rfc
             if( conf.find("port") != conf.end() )
             {
                 mosqpp::lib_init();
+                std::string id = conf["id"];
+                reinitialise(id.c_str(), true);
                 isReady = true;
                 int keepalive = 60;
                 int port = conf["port"];
