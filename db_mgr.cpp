@@ -163,32 +163,38 @@ void db_manager_c::load()
 											std::string &time_txt = cells[1];
 											std::string &value_txt = cells[2];
 
-											sensor_measure_t Measure;
-											Measure.value = std::stof(value_txt);
-
-											timeinfo.tm_mday = std::stoi(day_txt);
-											strvect timevals = utl::split(time_txt,':');
-											if(timevals.size() == 3)
+											try
 											{
-												timeinfo.tm_hour = std::stoi(timevals[0]);
-												timeinfo.tm_min = std::stoi(timevals[1]);
-												timeinfo.tm_sec = std::stoi(timevals[2]);
+												sensor_measure_t Measure;
+												Measure.value = std::stof(value_txt);
+												timeinfo.tm_mday = std::stoi(day_txt);
+												strvect timevals = utl::split(time_txt,':');
+												if(timevals.size() == 3)
+												{
+													timeinfo.tm_hour = std::stoi(timevals[0]);
+													timeinfo.tm_min = std::stoi(timevals[1]);
+													timeinfo.tm_sec = std::stoi(timevals[2]);
+												}
+												else
+												{
+													Log::cout << "dbm>\tunexpected time format" << Log::Error();
+												}
+												Measure.time = std::mktime(&timeinfo);
+												Nodes[NodeId][SensorName].push_back(Measure);
+												nbLoadedSamples++;
+												nbFileLoadedSamples++;
 											}
-											else
+											catch(std::invalid_argument& ia)
 											{
-												Log::cout << "Error: unexpected time format" << Log::Error();
+												Log::cout << "dbm>\tinvalid argument, line skipped" << Log::Error();
 											}
-											Measure.time = std::mktime(&timeinfo);
-											Nodes[NodeId][SensorName].push_back(Measure);
-											nbLoadedSamples++;
-											nbFileLoadedSamples++;
 										}
 										else
 										{
-											Log::cout << "Error: 3 columns expected" << Log::Error();
+											Log::cout << "dbm>\t3 columns expected" << Log::Error();
 										}
 									}
-									Log::cout << " Nb Samples: " << nbFileLoadedSamples << Log::Info();
+									Log::cout << "dbm>\tNb Samples: " << nbFileLoadedSamples << Log::Info();
 								}
 								
 							}
@@ -201,6 +207,11 @@ void db_manager_c::load()
 			catch (const filesystem_error& ex)
 			{
 				Log::cout<<"dbm>\t" << ex.what() <<Log::Error();
+			}
+			catch(...)
+			{
+				Log::cout<<"dbm>\t" <<"Unknown Exception, program will exit" <<Log::Error();
+				exit(1);
 			}
 			if(nbLoadedSamples > 0)
 			{
