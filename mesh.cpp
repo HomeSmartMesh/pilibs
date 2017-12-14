@@ -36,6 +36,8 @@ mesh protocol construction
 
 #include <iostream>
 
+#include "log.hpp"
+
 static uint8_t Source_Node_Id = 255;
 
 void mesh::set_source_nodId(uint8_t Id)
@@ -54,22 +56,49 @@ void mesh::raw::send(Serial &l_str,uint8_t *buffer)
 {
 	uint8_t size = buffer[0];
 	crc::set(buffer);//already have size @[0] used by crc
-	char format = 'b';
+	char format = 'c';
 	l_str.send(&format,1);
-	l_str.send(&buffer,size+2);// +2 for 16 bit crc
+	buffer[0] = 3;
+	buffer[1] = 'a';
+	buffer[2] = 'b';
+	buffer[3] = 'c';
+	l_str.send((char*)&buffer,3);// +2 for 16 bit crc
 }
 
 // msg_type , ...
 // 1 BYTE
 // message type :
 // other such as 't' : text or unknown without size, timeout limit
+void mesh::raw::send_txt(Serial &l_str,uint8_t *buffer)
+{
+	char text[128];//uC buffer is also 128
+	char* ptext = text;
+	uint8_t size = buffer[0];
+   
+	int nbWriteTotal = sprintf(ptext,"tmsg ");
+	ptext+=nbWriteTotal;
+	for(int i=0;i<size;i++)
+	{
+	    int nbWrite = sprintf(ptext,"0x%02x ",buffer[i]);
+		ptext+=nbWrite;
+		nbWriteTotal+=nbWrite;
+	}
+    int nbWrite = sprintf(ptext,"\r");
+	ptext+=nbWrite;
+	nbWriteTotal+=nbWrite;
+	l_str.send(text,nbWriteTotal);
+	ptext='\0';//null terminating
+	std::string s(text);
+	Log::cout << "mesh\t" << s << Log::Info();
+}
+
 void mesh::raw::send_txt(Serial &l_str,std::string &message)
 {
 	char text[128];//uC buffer is also 128
     int nbWrite = sprintf(text,"tmsg %s\r",message.c_str());
 	l_str.send(text,nbWrite);
 	std::string s(text);
-	Log::cout << "rgb> " << s << Log::Info();
+	Log::cout << "mesh\t" << s << Log::Info();
 }
 
 void mesh::msg::color_txt(Serial &l_str,uint8_t TargetNodeId,uint8_t R,uint8_t G,uint8_t B)
@@ -93,6 +122,8 @@ void mesh::msg::dimmer::all(Serial &l_str,uint8_t TargetNodeId,uint16_t light)
 	buffer[6] = 0xFF & light;
 	buffer[0] = 7;
 	
-	mesh::raw::send(buffer);
-	Log::cout << "dimmer> NodeId:" << TargetNodeId << " ; value:" <<light<< Log::Info();
+	//mesh::raw::send(l_str,buffer);
+	mesh::raw::send_txt(l_str,buffer);
+	int printNodeId = TargetNodeId;//as uint8_t does not print
+	Log::cout << "dimmer\tNodeId:" << printNodeId << " ; value:" <<light<< Log::Info();
 }

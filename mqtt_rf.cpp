@@ -55,7 +55,7 @@ using json = nlohmann::json;
 
 
 //one per app 
-mqtt_rf_c::mqtt_c(json &v_conf,Serial &l_rfcom) : mosquittopp("rf_gateway"),rfcom(l_rfcom)
+mqtt_rf_c::mqtt_rf_c(json &v_conf,Serial &l_rfcom) : mosquittopp("rf_gateway"),rfcom(l_rfcom)
 {
     conf = v_conf;
     isReady = false;
@@ -123,11 +123,11 @@ void mqtt_rf_c::handle_dimmer(int TargetNodeId,json &jMsg)
     }
     else
     {
-        Log::cout << "mqtt>\tUnknown dimmer format: "<< message<< Log::Error();
+        Log::cout << "mqtt>\tUnknown dimmer format"<< Log::Error();
     }
 }
 
-void mqtt_rf_c::handle_hexRGB(int TargetNodeId,string &message)
+void mqtt_rf_c::handle_hexRGB(int TargetNodeId,std::string &message)
 {
     if(message.find("#")==0)
     {
@@ -162,7 +162,7 @@ void mqtt_rf_c::handle_RGB(int  NodeId,json &jMsg)
     }
     else
     {
-        Log::cout << "mqtt>\twrong RGB format: "<< message<< Log::Error();
+        Log::cout << "mqtt>\twrong RGB format"<< Log::Error();
     }
 }
 
@@ -171,11 +171,11 @@ void mqtt_rf_c::handle_heat(int TargetNodeId,int heat_val)
     if((heat_val >= 0) && (heat_val<=10))
     {
         char text[31];
-        int nbWrite = sprintf(text,"heat 0x%02x 0x%02x\r",TargetNodeId,val);
-        l_str.send(text,nbWrite);
+        int nbWrite = sprintf(text,"heat 0x%02x 0x%02x\r",TargetNodeId,heat_val);
+        rfcom.send(text,nbWrite);
         std::string s(text);
         Log::cout << "ser\t" << s << Log::Debug();
-        Log::cout << "mqtt"<<"\t"<<"=> NodeId:"<< NodeId << " Heat: ("<< heat_val <<")"<< Log::Debug();
+        Log::cout << "mqtt"<<"\t"<<"=> NodeId:"<< TargetNodeId << " Heat: ("<< heat_val <<")"<< Log::Debug();
     }
 }
 
@@ -184,9 +184,10 @@ void mqtt_rf_c::handle_MeshRF(int NodeId,json &jMsg)
 
 }
 
-void mqtt_rf_c::handle_RawRF(int NodeId,json &jMsg)
+void mqtt_rf_c::handle_RawRF(std::string &message)
 {
-
+    Log::cout << "mqtt"<<"\t"<<"sending:" << message << Log::Info();
+    mesh::raw::send_txt(rfcom,message);
 }
 
 void mqtt_rf_c::run()
@@ -214,28 +215,31 @@ void mqtt_rf_c::on_connect(int rc)
 
     valueActions = conf["valueActions"]["HeadTopic"];
     jsonActions = conf["jsonActions"]["HeadTopic"];
-    std::string Subscribe1 = valueActions + "*";
-    std::string Subscribe2 = jsonActions + "*";
+    std::string Subscribe1 = valueActions + "#";
+    std::string Subscribe2 = jsonActions + "#";
     //TODO rather subscribe to the actions list
     //for .. subscribe(NULL,"NodesActions/+/{action1}");,...
     subscribe(NULL,Subscribe1.c_str());
+    Log::cout << "mqtt\tsubscribing to: " << Subscribe1 << Log::Info();
     subscribe(NULL,Subscribe2.c_str());
+    Log::cout << "mqtt\tsubscribing to: " << Subscribe2 << Log::Info();
 }
 
 void mqtt_rf_c::on_message(const struct mosquitto_message *message)
 {
     std::string msg(static_cast<const char*>(message->payload) );
     std::string topic(message->topic);
+    //Log::cout << "mqtt"<<"\t"<<"Topic : "<< topic <<" ; Msg : "<< msg << Log::Debug();
     std::string Action = topic;
     utl::TakeParseTo(Action,'/');//remove first section "NodesActions/"
     std::string Id = utl::TakeParseTo(Action,'/');//take the second element
-    int NodeId = std::stoi(Id);
+    int  NodeId = (uint8_t)std::stoi(Id);
     if(topic.find(valueActions) == 0)
     {
         if(Action.find("dimmer")==0)
         {
             uint16_t light = std::stoi(msg);
-            mesh::msg::dimmer::all(rfcom,TargetNodeId,light);
+            mesh::msg::dimmer::all(rfcom,NodeId,light);
         }
         else if(Action.find("heat")==0)
         {
@@ -245,26 +249,29 @@ void mqtt_rf_c::on_message(const struct mosquitto_message *message)
     }
     else if(topic.find(jsonActions) == 0)
     {
-        json jMsg = json::parse(message);
-        if(Action.find("dimmer")==0)
+        if(Action.find("RawRF")==0)
         {
-            handle_dimmer(NodeId,jMsg);
+            handle_RawRF(msg);//exception not json
         }
         else if(Action.find("hexRGB")==0)
         {
-            handle_hexRGB(NodeId,message);//exception not json
+            handle_hexRGB(NodeId,msg);//exception not json
         }
-        else if(Action.find("RGB")==0)
+        else
         {
-            handle_RGB(NodeId,jMsg);
-        }
-        else if(Action.find("MeshRF")==0)
-        {
-            handle_MeshRF(NodeId,jMsg);
-        }
-        else if(Action.find("RawRF")==0)
-        {
-            handle_RawRF(NodeId,jMsg);
+            json jMsg = json::parse(msg);
+            if(Action.find("dimmer")==0)
+            {
+                handle_dimmer(NodeId,jMsg);
+            }
+            else if(Action.find("RGB")==0)
+            {
+                handle_RGB(NodeId,jMsg);
+            }
+            else if(Action.find("MeshRF")==0)
+            {
+                handle_MeshRF(NodeId,jMsg);
+            }
         }
     }
     else

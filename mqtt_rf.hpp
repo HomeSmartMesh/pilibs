@@ -37,6 +37,7 @@ ________________________________________________________________________________
 
 #include "utils.hpp"
 #include "serial.hpp"
+#include <string>
 
 #include "json.hpp"
 using json = nlohmann::json;
@@ -44,7 +45,7 @@ using json = nlohmann::json;
 class mqtt_rf_c : public mosqpp::mosquittopp
 {
 	public:
-		mqtt_c(json &conf,Serial &l_rfcom);
+		mqtt_rf_c(json &conf,Serial &l_rfcom);
         void run();
 		void say_hello();
 		void on_connect(int rc);
@@ -55,16 +56,16 @@ class mqtt_rf_c : public mosqpp::mosquittopp
         void publish_measures(NodeMap_t &NodesSensorsVals);
 
 		void handle_dimmer(int TargetNodeId,json &jMsg);
-		void handle_hexRGB(int TargetNodeId,string &message);
+		void handle_hexRGB(int TargetNodeId,std::string &message);
 		void handle_RGB(int  NodeId,json &jMsg);
 		void handle_heat(int TargetNodeId,int heat_val);
 		void handle_MeshRF(int NodeId,json &jMsg);
-		void handle_RawRF(int NodeId,json &jMsg);
+		void handle_RawRF(std::string &message);
 
 	private:
 	Serial 		&rfcom;
 	json 		conf;
-	string 		valueActions,jsonActions;
+	std::string 		valueActions,jsonActions;
 	RGB_data_t 	rgb;
 	
 };

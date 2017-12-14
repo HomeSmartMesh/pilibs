@@ -46,6 +46,7 @@ namespace mesh
     namespace raw
     {
         void send(Serial &l_str,uint8_t *buffer);
+        void send_txt(Serial &l_str,uint8_t *buffer);
         void send_txt(Serial &l_str,std::string &message);
     }
     namespace bcast
