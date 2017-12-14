@@ -44,21 +44,55 @@ void mesh::set_source_nodId(uint8_t Id)
 }
 
 
-void mesh::raw::send(uint8_t *buffer)
+// msg_type , size   , data , crc
+// 1 BYTE   , 1 BYTE , ...
+// message type :
+// 'b'  : binary             => size defined
+// 'c'  : binary with crc    => size defined
+// other: text or unknown without size, timeout limit
+void mesh::raw::send(Serial &l_str,uint8_t *buffer)
 {
-
+	uint8_t size = buffer[0];
+	crc::set(buffer);//already have size @[0] used by crc
+	char format = 'b';
+	l_str.send(&format,1);
+	l_str.send(&buffer,size+2);// +2 for 16 bit crc
 }
 
-void mesh::raw::send_txt(std::string)
+// msg_type , ...
+// 1 BYTE
+// message type :
+// other such as 't' : text or unknown without size, timeout limit
+void mesh::raw::send_txt(Serial &l_str,std::string &message)
 {
-
+	char text[128];//uC buffer is also 128
+    int nbWrite = sprintf(text,"tmsg %s\r",message.c_str());
+	l_str.send(text,nbWrite);
+	std::string s(text);
+	Log::cout << "rgb> " << s << Log::Info();
 }
 
 void mesh::msg::color_txt(Serial &l_str,uint8_t TargetNodeId,uint8_t R,uint8_t G,uint8_t B)
 {
-	char text[31];
+	char text[128];//uC buffer is also 128
     int nbWrite = sprintf(text,"trgb 0x%02x 0x%02x 0x%02x 0x%02x\r",TargetNodeId,R,G,B);
 	l_str.send(text,nbWrite);
 	std::string s(text);
 	Log::cout << "rgb> " << s << Log::Info();
+}
+
+void mesh::msg::dimmer::all(Serial &l_str,uint8_t TargetNodeId,uint16_t light)
+{
+	uint8_t buffer[36];
+				//p2p:0 , msg:1 , msg:1 , ack:1 , ttl:2
+	buffer[1] = 		(1<<6)  | (1<<5)| (1<<4)| 2;
+	buffer[2] = 0x07;//light both sensor and order - TODO add dimmer id
+	buffer[3] = Source_Node_Id;
+	buffer[4] = TargetNodeId;
+	buffer[5] = 0xFF & (light>>8);
+	buffer[6] = 0xFF & light;
+	buffer[0] = 7;
+	
+	mesh::raw::send(buffer);
+	Log::cout << "dimmer> NodeId:" << TargetNodeId << " ; value:" <<light<< Log::Info();
 }
