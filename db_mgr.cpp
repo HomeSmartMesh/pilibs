@@ -261,7 +261,7 @@ void db_manager_c::addMeasures(NodeMap_t &NodesSensorsVals)
 	for(auto const& sensorsTables : NodesSensorsVals) 
 	{
 		int NodeId = sensorsTables.first;
-		std::string NodeName = "NodeId " + std::to_string(NodeId);
+		std::string NodeName = "NodeId" + std::to_string(NodeId);
 		Log::cout << "dbm\t" << NodeName << Log::Info();
 		for(auto const& Table : sensorsTables.second) 
 		{
