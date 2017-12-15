@@ -484,7 +484,6 @@ NodeMap_t Serial::processBuffer()
 		
 		while(buf_w != buf_end)
 		{
-			std::cout << *buf_w;
 			bool isp = isprint(*buf_w);
 
 			//Timestamping : avoid empty lines do not create a new timestamp if the char is a line ending

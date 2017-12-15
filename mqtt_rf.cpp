@@ -306,7 +306,7 @@ void mqtt_rf_c::publish_measures(NodeMap_t &NodesSensorsVals)
                 int status = publish(NULL,topic.c_str(),Value.size(),Value.c_str());
                 if(status == MOSQ_ERR_SUCCESS)
                 {
-                    Log::cout << "mqtt" << "\t" << "publish OK" << Log::Debug();
+                    Log::cout << "mqtt" << "\t" << "published @ "<<topic << Log::Debug();
                 }
                 else
                 {

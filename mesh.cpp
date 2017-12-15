@@ -115,15 +115,15 @@ void mesh::msg::dimmer::all(Serial &l_str,uint8_t TargetNodeId,uint16_t light)
 	uint8_t buffer[36];
 				//p2p:0 , msg:1 , msg:1 , ack:1 , ttl:2
 	buffer[1] = 		(1<<6)  | (1<<5)| (1<<4)| 2;
-	buffer[2] = 0x07;//light both sensor and order - TODO add dimmer id
+	buffer[2] = 0x0D;//dimmer id
 	buffer[3] = Source_Node_Id;
 	buffer[4] = TargetNodeId;
 	buffer[5] = 0xFF & (light>>8);
 	buffer[6] = 0xFF & light;
 	buffer[0] = 7;
 	
-	//mesh::raw::send(l_str,buffer);
-	mesh::raw::send_txt(l_str,buffer);
 	int printNodeId = TargetNodeId;//as uint8_t does not print
 	Log::cout << "dimmer\tNodeId:" << printNodeId << " ; value:" <<light<< Log::Info();
+	//mesh::raw::send(l_str,buffer);
+	mesh::raw::send_txt(l_str,buffer);
 }
