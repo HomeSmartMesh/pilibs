@@ -62,6 +62,7 @@ mqtt_rf_c::mqtt_rf_c(json &v_conf,Serial &l_rfcom) : mosquittopp("rf_gateway"),r
 {
     conf = v_conf;
     isConnected = false;
+    shouldBeConnected = false;
     shouldPublish = false;
     rgb.sendCount = 0;
 	//logfile : log into a file------------------------------------------------------
@@ -85,6 +86,7 @@ mqtt_rf_c::mqtt_rf_c(json &v_conf,Serial &l_rfcom) : mosquittopp("rf_gateway"),r
                 int keepalive = 60;
                 int port = conf["port"];
                 std::string host = conf["host"];
+                shouldBeConnected = true;//independent of failure or success
                 int res = connect(host.c_str(), port, keepalive);
                 if(res == MOSQ_ERR_SUCCESS)
                 {
@@ -99,19 +101,19 @@ mqtt_rf_c::mqtt_rf_c(json &v_conf,Serial &l_rfcom) : mosquittopp("rf_gateway"),r
         if(isConnected)
         {
             Log::cout << "mqtt"<<"\t"<<"connected to " << conf["host"] << " : " << conf["port"] << Log::Info();
-            if(( conf.find("enable_publish") != conf.end() ) && conf["enable_publish"] )
-            {
-                shouldPublish = true;
-                Log::cout << "mqtt"<<"\t"<<"publish enabled"<< Log::Info();
-            }
-            else
-            {
-                Log::cout << "mqtt"<<"\t"<<"publish not enabled"<< Log::Info();
-            }
         }
         else
         {
             Log::cout << "mqtt"<<"\t"<<"X Connection failed, will not be used" << Log::Error();
+        }
+        if(( conf.find("enable_publish") != conf.end() ) && conf["enable_publish"] )
+        {
+            shouldPublish = true;
+            Log::cout << "mqtt"<<"\t"<<"publish enabled - as long as connected"<< Log::Info();
+        }
+        else
+        {
+            Log::cout << "mqtt"<<"\t"<<"publish not enabled"<< Log::Info();
         }
     }
     else
@@ -213,20 +215,27 @@ void mqtt_rf_c::handle_RawRF(std::string &message)
 
 void mqtt_rf_c::run()
 {
-    if(isConnected)
+    static int cycle = 0;
+    if(shouldBeConnected)
     {
         int status = loop(0);//immediate return, 
-        if(status == MOSQ_ERR_CONN_LOST)
+        if((cycle % 500) == 0)
         {
-            Log::cout << "mqtt"<<"\t"<<"error connection lost, reconnecting" << Log::Error();
-            reconnect();
+            if(   (status == MOSQ_ERR_CONN_LOST)  || (status != MOSQ_ERR_SUCCESS) )
+            {
+                Log::cout << "mqtt"<<"\t"<<"error status("<<status << "), reconnecting" << Log::Error();
+                int res = reconnect();
+                if(res == MOSQ_ERR_SUCCESS)
+                {
+                    isConnected = true;
+                }
+                else
+                {
+                    Log::cout << "mqtt"<<"\t"<<"X Failed to reconnect" << Log::Error();
+                }
+            }
         }
-        else if(status != MOSQ_ERR_SUCCESS)
-        {
-            Log::cout << "mqtt"<<"\t"<<"unhandled error status("<<status << ")" << Log::Error();
-            //issues on auto boot, reconnect in this case as well
-            reconnect();
-        }
+        cycle++;
     }
 }
 

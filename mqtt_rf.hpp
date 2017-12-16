@@ -53,6 +53,7 @@ class mqtt_rf_c : public mosqpp::mosquittopp
 		void on_subscribe(int mid, int qos_count, const int *granted_qos);
 
         bool isConnected;
+        bool shouldBeConnected;
 		bool shouldPublish;
 
         void publish_measures(NodeMap_t &NodesSensorsVals);
