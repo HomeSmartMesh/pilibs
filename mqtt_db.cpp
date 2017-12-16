@@ -36,6 +36,9 @@ switched to mqtt_db on 13.12.2017
 
 #include "mqtt_db.hpp"
 
+//for gethostname
+#include <unistd.h>
+
 //for printf
 #include <stdio.h>
 //for stdout
