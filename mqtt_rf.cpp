@@ -35,6 +35,9 @@ ________________________________________________________________________________
 
 #include "mqtt_rf.hpp"
 
+//for gethostname
+#include <unistd.h>
+
 #include "mesh.hpp"
 
 //for printf
@@ -58,29 +61,34 @@ using json = nlohmann::json;
 mqtt_rf_c::mqtt_rf_c(json &v_conf,Serial &l_rfcom) : mosquittopp("rf_gateway"),rfcom(l_rfcom)
 {
     conf = v_conf;
-    isReady = false;
+    isConnected = false;
+    shouldPublish = false;
     rgb.sendCount = 0;
 	//logfile : log into a file------------------------------------------------------
-    if(( conf.find("disable") != conf.end() ) && !conf["disable"] )
+    if(( conf.find("enable_connect") != conf.end() ) && conf["enable_connect"] )
     {
         if( conf.find("host") != conf.end() )
         {
             if( conf.find("port") != conf.end() )
             {
                 mosqpp::lib_init();
-                if(conf.find("id") != conf.end())
+                if(conf.find("client_id") != conf.end())
                 {
-                    std::string id = conf["id"];
+                    char hostname[15];
+                    gethostname(hostname,15);
+                    std::string this_host(hostname);
+                    std::string id = conf["client_id"];
+                    id = id + "_" +this_host;
                     reinitialise(id.c_str(), true);
+                    Log::cout << "mqtt"<<"\t"<<"client id: " << id << Log::Info();
                 }
-                isReady = true;
                 int keepalive = 60;
                 int port = conf["port"];
                 std::string host = conf["host"];
                 int res = connect(host.c_str(), port, keepalive);
                 if(res == MOSQ_ERR_SUCCESS)
                 {
-                    Log::cout << "mqtt"<<"\t"<<"connecting to " << conf["host"] << " : " << port << Log::Info();
+                    isConnected = true;
                 }
                 else
                 {
@@ -88,14 +96,27 @@ mqtt_rf_c::mqtt_rf_c(json &v_conf,Serial &l_rfcom) : mosquittopp("rf_gateway"),r
                 }
             }
         }
-        if(!isReady)
+        if(isConnected)
         {
-            Log::cout << "mqtt"<<"\t"<<"X Not Configured, will not be used" << Log::Info();
+            Log::cout << "mqtt"<<"\t"<<"connected to " << conf["host"] << " : " << conf["port"] << Log::Info();
+            if(( conf.find("enable_publish") != conf.end() ) && conf["enable_publish"] )
+            {
+                shouldPublish = true;
+                Log::cout << "mqtt"<<"\t"<<"publish enabled"<< Log::Info();
+            }
+            else
+            {
+                Log::cout << "mqtt"<<"\t"<<"publish not enabled"<< Log::Info();
+            }
+        }
+        else
+        {
+            Log::cout << "mqtt"<<"\t"<<"X Connection failed, will not be used" << Log::Error();
         }
     }
     else
     {
-        Log::cout << "mqtt"<<"\t"<<"X disabled, will not be used" << Log::Info();
+        Log::cout << "mqtt"<<"\t"<<"X Connection not enabled" << Log::Info();
     }
 
 };
@@ -192,7 +213,7 @@ void mqtt_rf_c::handle_RawRF(std::string &message)
 
 void mqtt_rf_c::run()
 {
-    if(isReady)
+    if(isConnected)
     {
         int status = loop(0);//immediate return, 
         if(status == MOSQ_ERR_CONN_LOST)
@@ -217,12 +238,20 @@ void mqtt_rf_c::on_connect(int rc)
     jsonActions = conf["jsonActions"]["HeadTopic"];
     std::string Subscribe1 = valueActions + "#";
     std::string Subscribe2 = jsonActions + "#";
-    //TODO rather subscribe to the actions list
-    //for .. subscribe(NULL,"NodesActions/+/{action1}");,...
-    subscribe(NULL,Subscribe1.c_str());
-    Log::cout << "mqtt\tsubscribing to: " << Subscribe1 << Log::Info();
-    subscribe(NULL,Subscribe2.c_str());
-    Log::cout << "mqtt\tsubscribing to: " << Subscribe2 << Log::Info();
+
+    if(( conf.find("enable_subscribe") != conf.end() ) && conf["enable_subscribe"] )
+    {
+        //TODO rather subscribe to the "actions" list
+        //for .. subscribe(NULL,"Actions/+/{action1}");,...
+        subscribe(NULL,Subscribe1.c_str());
+        Log::cout << "mqtt\tsubscribing to: " << Subscribe1 << Log::Info();
+        subscribe(NULL,Subscribe2.c_str());
+        Log::cout << "mqtt\tsubscribing to: " << Subscribe2 << Log::Info();
+    }
+    else
+    {
+        Log::cout << "mqtt\tconnected but subscribe is not enabled: " << Log::Info();
+    }
 }
 
 void mqtt_rf_c::on_message(const struct mosquitto_message *message)
@@ -288,31 +317,31 @@ void mqtt_rf_c::on_subscribe(int mid, int qos_count, const int *granted_qos)
 
 void mqtt_rf_c::publish_measures(NodeMap_t &NodesSensorsVals)
 {
-	if(!isReady)
+	if(isConnected && shouldPublish)
 	{
-		return;
-	}
-	for(auto const& sensorsTables : NodesSensorsVals) 
-	{
-		int NodeId = sensorsTables.first;
-		std::string Node = std::to_string(NodeId);
-		for(auto const& Table : sensorsTables.second) 
-		{
-			std::string SensorName = Table.first;
-			for(auto const& Measure : Table.second) 
-			{
-                std::string topic = "Nodes/" + Node + "/" + SensorName;
-                std::string Value = std::to_string(Measure.value);
-                int status = publish(NULL,topic.c_str(),Value.size(),Value.c_str());
-                if(status == MOSQ_ERR_SUCCESS)
+        for(auto const& sensorsTables : NodesSensorsVals) 
+        {
+            int NodeId = sensorsTables.first;
+            std::string Node = std::to_string(NodeId);
+            for(auto const& Table : sensorsTables.second) 
+            {
+                std::string SensorName = Table.first;
+                for(auto const& Measure : Table.second) 
                 {
-                    Log::cout << "mqtt" << "\t" << "published @ "<<topic << Log::Debug();
+                    //TODO should make the publish adress configurable
+                    std::string topic = "Nodes/" + Node + "/" + SensorName;
+                    std::string Value = std::to_string(Measure.value);
+                    int status = publish(NULL,topic.c_str(),Value.size(),Value.c_str());
+                    if(status == MOSQ_ERR_SUCCESS)
+                    {
+                        Log::cout << "mqtt" << "\t" << "published @ "<<topic << Log::Debug();
+                    }
+                    else
+                    {
+                        Log::cout << "mqtt" << "\t" << "publish Fail" << Log::Error();
+                    }
                 }
-                else
-                {
-                    Log::cout << "mqtt" << "\t" << "publish Fail" << Log::Error();
-                }
-			}
-		}
+            }
+        }
 	}
 }

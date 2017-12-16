@@ -49,6 +49,7 @@ const int Log::loglevel_Error 	= 1;
 const int Log::loglevel_Warning = 2;
 const int Log::loglevel_Info 	= 3;
 const int Log::loglevel_Debug 	= 4;
+const int Log::loglevel_Verbose = 5;
 
 std::ofstream 	Log::logfile;
 bool	Log::isLogFile = false;
@@ -116,6 +117,8 @@ std::string logstr(int level)
 			return "Info";
 		case Log::loglevel_Debug :
 			return "Debug";
+		case Log::loglevel_Verbose :
+			return "Verbose";
 		default: 
 			return "";
 	}
@@ -167,6 +170,13 @@ std::string Log::Info()
 std::string Log::Debug()
 {
 	log(cout.str(),loglevel_Debug);
+	cout.str(std::string());
+	return "";
+}
+
+std::string Log::Verbose()
+{
+	log(cout.str(),loglevel_Verbose);
 	cout.str(std::string());
 	return "";
 }

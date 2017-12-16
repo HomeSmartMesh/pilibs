@@ -145,48 +145,43 @@ Serial::Serial()
 }
 Serial::Serial(json &conf,json &calib)
 {
-	if(!config(conf,calib))
-	{
-		Log::cout << "str>\tX :Serial Port not configured, will not be used" << Log::Info();
-		
-	}
+	isReady = config(conf,calib);
 }
 
 bool Serial::config(json &conf,json &calib)
 {
-	bool res = true;
-	
+	bool success = false;
 	//serial port config------------------------------------------------------------
-    if(( conf.find("disable") != conf.end() ) && !conf["disable"] )
+    if(( conf.find("enable") != conf.end() ) && conf["enable"] )
     {
 		std::string portName = conf["portname"];
-		Log::cout << "str>\tport = " << portName << Log::Info();
 		std::string port_baud = "115200";
 		if( conf.find("portbaud") != conf.end() )
 		{
 			port_baud = conf["portbaud"];
 		}
-		start(portName,port_baud);
+		if(start(portName,port_baud))
+		{
+			for(json::iterator node = calib.begin(); node != calib.end(); ++node)
+			{
+				Log::cout << "str\tloading calib node: " << node.key() << Log::Info();
+				int l_Id = std::stoi((std::string)node.key());
+				NodesMeasures[l_Id].load_calib_data(node.value());
+			}
+			success = true;
+		}
 	}
 	else
 	{
-		res = false;
+		Log::cout << "str\tX :Serial Port is not enabled, will not be used" << Log::Info();
 	}
 	
-	for(json::iterator node = calib.begin(); node != calib.end(); ++node)
-	{
-		Log::cout << "str>\tloading calib node: " << node.key() << Log::Info();
-		int l_Id = std::stoi((std::string)node.key());
-		NodesMeasures[l_Id].load_calib_data(node.value());
-	}
-	
-	isReady = res;
-	return isReady;
+	return success;
 }
 
-void Serial::start(std::string port_name,std::string baudrate)
+bool Serial::start(std::string port_name,std::string baudrate)
 {
-	std::string strlog;
+	bool success = false;
 	
 	isLogFile = true;
 	isLogOut = true;
@@ -194,7 +189,8 @@ void Serial::start(std::string port_name,std::string baudrate)
 	fd = open (port_name.c_str(), O_RDWR | O_NOCTTY | O_SYNC);
 	if (fd >= 0)
 	{
-		strlog+= "ser\tport "+port_name+" is open @";
+		std::string strlog;
+		strlog+= "str\tport "+port_name+" is open @";
 		if( utl::compare(baudrate,"500000") )
 		{
 			set_interface_attribs (fd, B500000, 0);
@@ -215,12 +211,15 @@ void Serial::start(std::string port_name,std::string baudrate)
 			set_interface_attribs (fd, B115200, 0);  // set speed to 115,200 bps, 8n1 (no parity)
 			strlog+="B115200";
 		}
+		Log::cout << strlog << Log::Info();
+		success = true;
 	}
 	else
 	{
-		strlog+="error "+std::to_string(errno)+" opening "+port_name+" : "+strerror(errno);
+		
+		Log::cout << "str\tError "+std::to_string(errno)+" opening "+port_name+" : "+strerror(errno) << Log::Error();
 	}
-	Log::cout << strlog << Log::Info();
+	return success;
 }
 
 bool LogBuffer_c::update(int fd)
@@ -351,7 +350,7 @@ void Serial::processLine(NodeMap_t &nodes)
 				// and release it for normal processing otherwise
 				if(isDuplicate)
 				{
-					Log::cout << "ser\tDiscarded Duplicate: "<< logline << Log::Debug();
+					Log::cout << "str\tDiscarded Duplicate: "<< logline << Log::Debug();
 					return;
 				}
 			}
@@ -361,7 +360,7 @@ void Serial::processLine(NodeMap_t &nodes)
 			// GO OUT Completely "return" so "logline" will not be further processed
 			if(isDuplicate)
 			{
-				Log::cout << "ser\tDiscarded Duplicate: "<< logline << Log::Debug();
+				Log::cout << "str\tDiscarded Duplicate: "<< logline << Log::Debug();
 				return;
 			}
 		#endif
@@ -402,7 +401,7 @@ void Serial::processLine(NodeMap_t &nodes)
 			}
 			else
 			{
-				Log::cout << "str>\tSensorId"<<l_Id<<" calib files not loaded" << Log::Error();
+				Log::cout << "str\tSensorId"<<l_Id<<" calib files not loaded" << Log::Error();
 			}
 		}
 		else if(utl::exists(notif_map,"light"))
@@ -463,7 +462,7 @@ void Serial::processLine(NodeMap_t &nodes)
 		}
 		else//other logs that do not need pre-formatting
 		{
-			Log::cout << "str>\tUnkown Protocol: "<<logline << Log::Warning();
+			Log::cout << "str\tUnkown Protocol: "<<logline << Log::Warning();
 			logbuf.currentlines.push_back(	logbuf.day + "\t" + logbuf.time + "\t" + logline);
 		}
 	}
@@ -512,13 +511,26 @@ NodeMap_t Serial::processBuffer()
 	}
 	if(!logbuf.currentlines.empty())
 	{
-		Log::cout << "ser\tProcessed " << logbuf.currentlines.size() << " Line(s)" << Log::Debug();
-		//Log::cout << logbuf.currentlines[0] << " 1st line" << Log::Debug();
+		Log::cout << "str\tProcessed " << logbuf.currentlines.size() << " Line(s)" << Log::Debug();
+		for(int i=0;i<logbuf.currentlines.size();i++)
+		{
+			Log::cout << "str\t"<< logbuf.currentlines[i] << Log::Verbose();
+		}
 	}
 	return nodes;
 }
 
 void Serial::send(char* buffer,int size)
 {
-	write(fd,buffer,size);
+	if(isReady)
+	{
+		write(fd,buffer,size);
+		//TODO add test for log level that avoids serialising the string
+		std::string line(buffer);
+		Log::cout << "str\t" << line << Log::Debug();
+	}
+	else
+	{
+		Log::cout << "str\t not enabled" << Log::Debug();
+	}
 }

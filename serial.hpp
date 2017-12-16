@@ -101,7 +101,7 @@ public:
 	bool			isReady;
 public:
 	bool 		config(json &conf,json &calib);
-	void 		start(std::string port_name,std::string baudrate);
+	bool 		start(std::string port_name,std::string baudrate);
 	void 		start_logfile(std::string fileName);
 	bool 		update();
 	NodeMap_t 	processBuffer();

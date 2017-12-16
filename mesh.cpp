@@ -86,10 +86,12 @@ void mesh::raw::send_txt(Serial &l_str,uint8_t *buffer)
     int nbWrite = sprintf(ptext,"\r");
 	ptext+=nbWrite;
 	nbWriteTotal+=nbWrite;
-	l_str.send(text,nbWriteTotal);
+
 	ptext='\0';//null terminating
 	std::string s(text);
 	Log::cout << "mesh\t" << s << Log::Info();
+
+	l_str.send(text,nbWriteTotal);
 }
 
 void mesh::raw::send_txt(Serial &l_str,std::string &message)

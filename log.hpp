@@ -55,6 +55,7 @@ public:
 	static const int loglevel_Warning 	;
 	static const int loglevel_Info 		;
 	static const int loglevel_Debug 	;
+	static const int loglevel_Verbose 	;
 public:
 	static bool config(json &conf);
 public:
@@ -73,6 +74,6 @@ public:
 	static std::string	Warning();
 	static std::string  Info();
 	static std::string  Debug();
-
+	static std::string 	Verbose();
 };
 
