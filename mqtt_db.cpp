@@ -64,10 +64,15 @@ mqtt_db_c::mqtt_db_c(json &conf) : mosquittopp("iot_db")
             if( conf.find("port") != conf.end() )
             {
                 mosqpp::lib_init();
-                if(conf.find("id") != conf.end())
+                if(conf.find("client_id") != conf.end())
                 {
-                    std::string id = conf["id"];
+                    char hostname[15];
+                    gethostname(hostname,15);
+                    std::string this_host(hostname);
+                    std::string id = conf["client_id"];
+                    id = id + "_" +this_host;
                     reinitialise(id.c_str(), true);
+                    Log::cout << "mqtt"<<"\t"<<"client id: " << id << Log::Info();
                 }
                 isReady = true;
                 int keepalive = 60;
