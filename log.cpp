@@ -67,7 +67,7 @@ bool Log::config(json &conf)
 	if( conf.find("logfile") != conf.end() )
 	{
 		std::string fileName = conf["logfile"];
-		std::cout << "log> logfile = " << fileName << std::endl;
+		std::cout << "log : logfile = " << fileName << std::endl;
 		logfile.open(fileName.c_str(), (std::ios::out|std::ios::app) );
 		if(!logfile.is_open())
 		{
@@ -79,7 +79,7 @@ bool Log::config(json &conf)
 			{
 				std::string lstr = conf["level_file"];
 				level_file = std::stoi(lstr);
-				std::cout << "log> level_file = " << level_file << std::endl;
+				std::cout << "log : level_file = " << level_file << std::endl;
 			}
 			else
 			{
@@ -94,7 +94,7 @@ bool Log::config(json &conf)
 	{
 		std::string lstr = conf["level_out"];
 		level_out = std::stoi(lstr);
-		std::cout << "log> level_out = " << level_out << std::endl;
+		std::cout << "log : level_out = " << level_out << std::endl;
 	}
 	else
 	{
