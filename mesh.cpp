@@ -98,18 +98,18 @@ void mesh::raw::send_txt(Serial &l_str,std::string &message)
 {
 	char text[128];//uC buffer is also 128
     int nbWrite = sprintf(text,"tmsg %s\r",message.c_str());
-	l_str.send(text,nbWrite);
 	std::string s(text);
 	Log::cout << "mesh\t" << s << Log::Info();
+	l_str.send(text,nbWrite);
 }
 
 void mesh::msg::color_txt(Serial &l_str,uint8_t TargetNodeId,uint8_t R,uint8_t G,uint8_t B)
 {
 	char text[128];//uC buffer is also 128
     int nbWrite = sprintf(text,"trgb 0x%02x 0x%02x 0x%02x 0x%02x\r",TargetNodeId,R,G,B);
-	l_str.send(text,nbWrite);
 	std::string s(text);
-	Log::cout << "rgb> " << s << Log::Info();
+	Log::cout << "mesh\t" << s << Log::Info();
+	l_str.send(text,nbWrite);
 }
 
 void mesh::msg::dimmer::all(Serial &l_str,uint8_t TargetNodeId,uint16_t light)

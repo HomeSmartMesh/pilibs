@@ -322,6 +322,17 @@ void LogBuffer_c::lastLinesAdd(std::string &line)
 	//Log::cout << "lastline_add>" << line << std::endl;
 }
 
+void handle_float(const std::string &sensorname,strmap &notif_map,NodeMap_t&nodes,const int node_id,const std::time_t &ts)
+{
+	sensor_measure_t sensor_measure;
+	sensor_measure.time = ts;
+
+	std::string sensor_value_text = notif_map[sensorname];
+	float sensor_value_int = std::stof(sensor_value_text);
+	sensor_measure.value = sensor_value_int;
+	nodes[node_id][sensorname].push_back(sensor_measure);
+}
+
 void Serial::processLine(NodeMap_t &nodes)
 {
 	//replace end of line by end of string
@@ -367,7 +378,7 @@ void Serial::processLine(NodeMap_t &nodes)
 		
 		//if we reached it here, that means the log line is not duplicate with the previous 2 sec
 		logbuf.lastLinesAdd(logline);
-		
+		bool is_partly_handled = false;
 		if(utl::exists(notif_map,"bme280"))
 		{
 			if( (NodesMeasures.find(l_Id) != NodesMeasures.end()) &&
@@ -403,36 +414,40 @@ void Serial::processLine(NodeMap_t &nodes)
 			{
 				Log::cout << "str\tSensorId"<<l_Id<<" calib files not loaded" << Log::Error();
 			}
+			is_partly_handled = true;
 		}
-		else if(utl::exists(notif_map,"light"))
+		else
 		{
-			sensor_measure_t light;
-			light.time = logbuf.time_now;
-
-			std::string t_light = notif_map["light"];
-			int l_light = std::stoi(t_light);
-			light.value = l_light;
-			
-			nodes[l_Id]["light"].push_back(light);
-
-			//yes it is a generic log
+			//generic log for all the others
 			logbuf.currentlines.push_back(	logbuf.day + "\t" + logbuf.time + "\t" + logline);
 		}
-		else if(utl::exists(notif_map,"temperature"))
+		
+		if(utl::exists(notif_map,"light"))
 		{
-			sensor_measure_t temper;
-			temper.time = logbuf.time_now;
-
-			std::string t_temper = notif_map["temperature"];
-			float l_temper = std::stof(t_temper);
-			temper.value = l_temper;
-			
-			nodes[l_Id]["temperature"].push_back(temper);
-
-			//yes it is a generic log
-			logbuf.currentlines.push_back(	logbuf.day + "\t" + logbuf.time + "\t" + logline);
+			handle_float("light",notif_map,nodes,l_Id,logbuf.time_now);
+			is_partly_handled = true;
 		}
-		else if(utl::exists(notif_map,"event"))//events
+		if(utl::exists(notif_map,"red"))
+		{
+			handle_float("red",notif_map,nodes,l_Id,logbuf.time_now);
+			is_partly_handled = true;
+		}
+		if(utl::exists(notif_map,"green"))
+		{
+			handle_float("green",notif_map,nodes,l_Id,logbuf.time_now);
+			is_partly_handled = true;
+		}
+		if(utl::exists(notif_map,"blue"))
+		{
+			handle_float("blue",notif_map,nodes,l_Id,logbuf.time_now);
+			is_partly_handled = true;
+		}
+		if(utl::exists(notif_map,"temperature"))
+		{
+			handle_float("temperature",notif_map,nodes,l_Id,logbuf.time_now);
+			is_partly_handled = true;
+		}
+		if(utl::exists(notif_map,"event"))//events
 		{
 			sensor_measure_t reset_evt;
 			reset_evt.time = logbuf.time_now;
@@ -441,12 +456,10 @@ void Serial::processLine(NodeMap_t &nodes)
 			{
 				reset_evt.value = 1;
 				nodes[l_Id]["Reset"].push_back(reset_evt);
-				//yes it is a generic log
-				logbuf.currentlines.push_back(	logbuf.day + "\t" + logbuf.time + "\t" + logline);
 			}
-
+			is_partly_handled = true;
 		}
-		else if(utl::exists(notif_map,"status"))//current states
+		if(utl::exists(notif_map,"status"))//current states
 		{
 			sensor_measure_t state;
 			state.time = logbuf.time_now;
@@ -455,15 +468,13 @@ void Serial::processLine(NodeMap_t &nodes)
 			{
 				state.value = 1;
 				nodes[l_Id]["Alive"].push_back(state);
-				//yes it is a generic log
-				logbuf.currentlines.push_back(	logbuf.day + "\t" + logbuf.time + "\t" + logline);
 			}
 
+			is_partly_handled = true;
 		}
-		else//other logs that do not need pre-formatting
+		if(!is_partly_handled)
 		{
-			Log::cout << "str\tUnkown Protocol: "<<logline << Log::Warning();
-			logbuf.currentlines.push_back(	logbuf.day + "\t" + logbuf.time + "\t" + logline);
+			Log::cout << "stm32\t"<<logline << Log::Info();
 		}
 	}
 }
@@ -527,10 +538,10 @@ void Serial::send(char* buffer,int size)
 		write(fd,buffer,size);
 		//TODO add test for log level that avoids serialising the string
 		std::string line(buffer);
-		Log::cout << "str\t" << line << Log::Debug();
+		Log::cout << "str\t" << line << Log::Verbose();
 	}
 	else
 	{
-		Log::cout << "str\t not enabled" << Log::Debug();
+		Log::cout << "str\t not enabled" << Log::Verbose();
 	}
 }
