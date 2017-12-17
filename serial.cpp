@@ -421,7 +421,8 @@ void Serial::processLine(NodeMap_t &nodes)
 			//generic log for all the others
 			logbuf.currentlines.push_back(	logbuf.day + "\t" + logbuf.time + "\t" + logline);
 		}
-		
+		// ------------------------------ TODO ------------------------------ 
+		//could handle all of these as configurable abilities
 		if(utl::exists(notif_map,"light"))
 		{
 			handle_float("light",notif_map,nodes,l_Id,logbuf.time_now);
@@ -440,6 +441,11 @@ void Serial::processLine(NodeMap_t &nodes)
 		if(utl::exists(notif_map,"blue"))
 		{
 			handle_float("blue",notif_map,nodes,l_Id,logbuf.time_now);
+			is_partly_handled = true;
+		}
+		if(utl::exists(notif_map,"proximity"))
+		{
+			handle_float("proximity",notif_map,nodes,l_Id,logbuf.time_now);
 			is_partly_handled = true;
 		}
 		if(utl::exists(notif_map,"temperature"))
