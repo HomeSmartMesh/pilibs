@@ -243,10 +243,10 @@ void mqtt_rf_c::on_connect(int rc)
 {
     Log::cout << "mqtt"<<"\t"<<"connected id(" << rc << ")" << Log::Info();
 
-    valueActions = conf["valueActions"]["HeadTopic"];
-    jsonActions = conf["jsonActions"]["HeadTopic"];
-    std::string Subscribe1 = valueActions + "#";
-    std::string Subscribe2 = jsonActions + "#";
+    valueActions = "Nodes/";
+    jsonActions  = "jNodes/";
+    std::string Subscribe1 = valueActions+"#";
+    std::string Subscribe2 = jsonActions +"#";
 
     if(( conf.find("enable_subscribe") != conf.end() ) && conf["enable_subscribe"] )
     {
