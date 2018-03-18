@@ -191,15 +191,12 @@ void mqtt_rf_c::handle_RGB(int  NodeId,json &jMsg)
 
 void mqtt_rf_c::handle_heat(int TargetNodeId,int heat_val)
 {
-    if((heat_val >= 0) && (heat_val<=10))
-    {
-        char text[31];
-        int nbWrite = sprintf(text,"heat 0x%02x 0x%02x\r",TargetNodeId,heat_val);
-        rfcom.send(text,nbWrite);
-        std::string s(text);
-        Log::cout << "ser\t" << s << Log::Debug();
-        Log::cout << "mqtt"<<"\t"<<"=> NodeId:"<< TargetNodeId << " Heat: ("<< heat_val <<")"<< Log::Debug();
-    }
+    char text[31];
+    int nbWrite = sprintf(text,"theat 0x%02x 0x%02x\r",TargetNodeId,heat_val);
+    rfcom.send(text,nbWrite);
+    std::string s(text);
+    Log::cout << "ser\t" << s << Log::Debug();
+    Log::cout << "mqtt"<<"\t"<<"=> NodeId:"<< TargetNodeId << " Heat: ("<< heat_val <<")"<< Log::Debug();
 }
 
 void mqtt_rf_c::handle_MeshRF(int NodeId,json &jMsg)

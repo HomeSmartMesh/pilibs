@@ -458,14 +458,11 @@ void Serial::processLine(NodeMap_t &nodes)
 			handle_float("heat",notif_map,nodes,l_Id,logbuf.time_now);
 			is_partly_handled = true;
 		}
-<<<<<<< HEAD
 		if(utl::exists(notif_map,"button"))
 		{
 			handle_float("button",notif_map,nodes,l_Id,logbuf.time_now);
 			is_partly_handled = true;
 		}
-=======
->>>>>>> a3ef935962b715b3ba0019af7a95d280f37ad875
 		if(utl::exists(notif_map,"event"))//events
 		{
 			sensor_measure_t reset_evt;
