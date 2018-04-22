@@ -322,14 +322,14 @@ void LogBuffer_c::lastLinesAdd(std::string &line)
 	//Log::cout << "lastline_add>" << line << std::endl;
 }
 
-void handle_float(const std::string &sensorname,strmap &notif_map,NodeMap_t&nodes,const int node_id,const std::time_t &ts)
+void handle_float(const std::string &sensorname,strmap &notif_map,NodeMap_t&nodes,const int node_id,const std::time_t &ts,float coeff=1.0)
 {
 	sensor_measure_t sensor_measure;
 	sensor_measure.time = ts;
 
 	std::string sensor_value_text = notif_map[sensorname];
 	float sensor_value_int = std::stof(sensor_value_text);
-	sensor_measure.value = sensor_value_int;
+	sensor_measure.value = sensor_value_int * coeff;
 	nodes[node_id][sensorname].push_back(sensor_measure);
 }
 
@@ -450,7 +450,17 @@ void Serial::processLine(NodeMap_t &nodes)
 		}
 		if(utl::exists(notif_map,"temperature"))
 		{
-			handle_float("temperature",notif_map,nodes,l_Id,logbuf.time_now);
+			handle_float("temperature",notif_map,nodes,l_Id,logbuf.time_now,0.01);
+			is_partly_handled = true;
+		}
+		if(utl::exists(notif_map,"humidity"))
+		{
+			handle_float("humidity",notif_map,nodes,l_Id,logbuf.time_now,0.01);
+			is_partly_handled = true;
+		}
+		if(utl::exists(notif_map,"pressure"))
+		{
+			handle_float("pressure",notif_map,nodes,l_Id,logbuf.time_now,0.01);
 			is_partly_handled = true;
 		}
 		if(utl::exists(notif_map,"heat"))
