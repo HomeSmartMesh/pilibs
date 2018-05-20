@@ -450,17 +450,17 @@ void Serial::processLine(NodeMap_t &nodes)
 		}
 		if(utl::exists(notif_map,"temperature"))
 		{
-			handle_float("temperature",notif_map,nodes,l_Id,logbuf.time_now,0.01);
+			handle_float("temperature",notif_map,nodes,l_Id,logbuf.time_now);
 			is_partly_handled = true;
 		}
 		if(utl::exists(notif_map,"humidity"))
 		{
-			handle_float("humidity",notif_map,nodes,l_Id,logbuf.time_now,0.01);
+			handle_float("humidity",notif_map,nodes,l_Id,logbuf.time_now);
 			is_partly_handled = true;
 		}
 		if(utl::exists(notif_map,"pressure"))
 		{
-			handle_float("pressure",notif_map,nodes,l_Id,logbuf.time_now,0.01);
+			handle_float("pressure",notif_map,nodes,l_Id,logbuf.time_now);
 			is_partly_handled = true;
 		}
 		if(utl::exists(notif_map,"heat"))
