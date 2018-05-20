@@ -468,6 +468,11 @@ void Serial::processLine(NodeMap_t &nodes)
 			handle_float("heat",notif_map,nodes,l_Id,logbuf.time_now);
 			is_partly_handled = true;
 		}
+		if(utl::exists(notif_map,"battery"))
+		{
+			handle_float("battery",notif_map,nodes,l_Id,logbuf.time_now);
+			is_partly_handled = true;
+		}
 		if(utl::exists(notif_map,"button"))
 		{
 			handle_float("button",notif_map,nodes,l_Id,logbuf.time_now);
