@@ -328,9 +328,19 @@ void handle_float(const std::string &sensorname,strmap &notif_map,NodeMap_t&node
 	sensor_measure.time = ts;
 
 	std::string sensor_value_text = notif_map[sensorname];
-	float sensor_value_int = std::stof(sensor_value_text);
-	sensor_measure.value = sensor_value_int * coeff;
-	nodes[node_id][sensorname].push_back(sensor_measure);
+
+	float sensor_value_int;
+	try
+	{
+		sensor_value_int = std::stof(sensor_value_text);
+		sensor_measure.value = sensor_value_int * coeff;
+		nodes[node_id][sensorname].push_back(sensor_measure);
+	}
+	catch(const std::exception& ex)
+	{
+		Log::cout << "str> !!! Caught exception \"" << ex.what() << "\" trying to convert<"<<sensorname<< "> : <"<< sensor_value_text << ">!!!\n"<< Log::Error();
+	}
+
 }
 
 void Serial::processLine(NodeMap_t &nodes)
@@ -402,16 +412,19 @@ void Serial::processLine(NodeMap_t &nodes)
 		}
 		if(utl::exists(notif_map,"temp"))
 		{
+			notif_map["temperature"] = notif_map["temp"];
 			handle_float("temperature",notif_map,nodes,l_Id,logbuf.time_now);
 			is_partly_handled = true;
 		}
 		if(utl::exists(notif_map,"hum"))
 		{
+			notif_map["humidity"] = notif_map["hum"];
 			handle_float("humidity",notif_map,nodes,l_Id,logbuf.time_now);
 			is_partly_handled = true;
 		}
 		if(utl::exists(notif_map,"press"))
 		{
+			notif_map["pressure"] = notif_map["press"];
 			handle_float("pressure",notif_map,nodes,l_Id,logbuf.time_now);
 			is_partly_handled = true;
 		}
