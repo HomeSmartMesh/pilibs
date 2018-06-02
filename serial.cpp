@@ -345,87 +345,39 @@ void Serial::processLine(NodeMap_t &nodes)
 	
 	strmap notif_map;
 	utl::str2map( logline, notif_map);
-	if(utl::exists(notif_map,"NodeId"))
+	if(utl::exists(notif_map,"src"))
 	{
-		std::string t_Id = notif_map["NodeId"];
+		std::string t_Id = notif_map["src"];
 		int l_Id = std::stoi(t_Id);
 
-		#ifdef OLD_RETRANSMISSION_CHECK
-			if(utl::exists(notif_map,"RTX"))//If this is a retransmitted frame
-			{
-				utl::TakeParseTo(logline,';');//remove the first section "RTX:ttl;"
-				
-				logbuf.lastLinesDiscardOld();//remove from lastLines[] what is loder than 2 sec
-				bool isDuplicate = logbuf.lastLinesCheck(logline);//if the line was available in lastLines[]
-				//Here should be taken out the duplicaes,
-				// and release it for normal processing otherwise
-				if(isDuplicate)
-				{
-					Log::cout << "str\tDiscarded Duplicate: "<< logline << Log::Debug();
-					return;
-				}
-			}
-		#else
-			logbuf.lastLinesDiscardOld();//remove from lastLines[] what is loder than 2 sec
-			bool isDuplicate = logbuf.lastLinesCheck(logline);//if the line was available in lastLines[]
-			// GO OUT Completely "return" so "logline" will not be further processed
-			if(isDuplicate)
-			{
-				Log::cout << "str\tDiscarded Duplicate: "<< logline << Log::Debug();
-				return;
-			}
-		#endif
+		//----------------------------------------------------------------------
+		//TODO complete rework of duplicate detection by excluding rssi and ctrl
+		//----------------------------------------------------------------------
+
+		logbuf.lastLinesDiscardOld();//remove from lastLines[] what is loder than 2 sec
+		bool isDuplicate = logbuf.lastLinesCheck(logline);//if the line was available in lastLines[]
+		// GO OUT Completely "return" so "logline" will not be further processed
+		if(isDuplicate)
+		{
+			Log::cout << "str\tDiscarded Duplicate: "<< logline << Log::Debug();
+			return;
+		}
 		
 		//if we reached it here, that means the log line is not duplicate with the previous 2 sec
 		logbuf.lastLinesAdd(logline);
-		bool is_partly_handled = false;
-		if(utl::exists(notif_map,"bme280"))
-		{
-			if( (NodesMeasures.find(l_Id) != NodesMeasures.end()) &&
-				(NodesMeasures[l_Id].isReady) )
-			{
-				NodesMeasures[l_Id].set_all_measures_Text(notif_map["bme280"]);
-				
-				sensor_measure_t temperature,humidity,pressure;
-				temperature.time = logbuf.time_now;
-				humidity.time = logbuf.time_now;
-				pressure.time = logbuf.time_now;
 
-				temperature.value = NodesMeasures[l_Id].get_float_temperature();
-				humidity.value = NodesMeasures[l_Id].get_float_humidity();
-				pressure.value = NodesMeasures[l_Id].get_float_pressure();
-				
-				nodes[l_Id]["temperature"].push_back(temperature);
-				nodes[l_Id]["humidity"].push_back(humidity);
-				nodes[l_Id]["pressure"].push_back(pressure);
-				
-				logbuf.currentlines.push_back(	logbuf.day + "\t" + logbuf.time + "\t" 
-										+ "NodeId:" + std::to_string(l_Id)
-										+ ";temperature:" + NodesMeasures[l_Id].get_temperature());
-										
-				logbuf.currentlines.push_back(	logbuf.day + "\t" + logbuf.time + "\t" 
-										+ "NodeId:" + std::to_string(l_Id)
-										+ ";humidity:" + NodesMeasures[l_Id].get_humidity());
-				logbuf.currentlines.push_back(	logbuf.day + "\t" + logbuf.time + "\t" 
-										+ "NodeId:" + std::to_string(l_Id)
-										+ ";pressure:" + NodesMeasures[l_Id].get_pressure());
-			}
-			else
-			{
-				Log::cout << "str\tSensorId"<<l_Id<<" calib files not loaded" << Log::Error();
-			}
-			is_partly_handled = true;
-		}
-		else
-		{
-			//generic log for all the others
-			logbuf.currentlines.push_back(	logbuf.day + "\t" + logbuf.time + "\t" + logline);
-		}
+		bool is_partly_handled = false;
+		logbuf.currentlines.push_back(	logbuf.day + "\t" + logbuf.time + "\t" + logline);
 		// ------------------------------ TODO ------------------------------ 
 		//could handle all of these as configurable abilities
 		if(utl::exists(notif_map,"light"))
 		{
 			handle_float("light",notif_map,nodes,l_Id,logbuf.time_now);
+			is_partly_handled = true;
+		}
+		if(utl::exists(notif_map,"ambient"))
+		{
+			handle_float("ambient",notif_map,nodes,l_Id,logbuf.time_now);
 			is_partly_handled = true;
 		}
 		if(utl::exists(notif_map,"red"))
@@ -448,17 +400,17 @@ void Serial::processLine(NodeMap_t &nodes)
 			handle_float("proximity",notif_map,nodes,l_Id,logbuf.time_now);
 			is_partly_handled = true;
 		}
-		if(utl::exists(notif_map,"temperature"))
+		if(utl::exists(notif_map,"temp"))
 		{
 			handle_float("temperature",notif_map,nodes,l_Id,logbuf.time_now);
 			is_partly_handled = true;
 		}
-		if(utl::exists(notif_map,"humidity"))
+		if(utl::exists(notif_map,"hum"))
 		{
 			handle_float("humidity",notif_map,nodes,l_Id,logbuf.time_now);
 			is_partly_handled = true;
 		}
-		if(utl::exists(notif_map,"pressure"))
+		if(utl::exists(notif_map,"press"))
 		{
 			handle_float("pressure",notif_map,nodes,l_Id,logbuf.time_now);
 			is_partly_handled = true;
@@ -478,34 +430,29 @@ void Serial::processLine(NodeMap_t &nodes)
 			handle_float("button",notif_map,nodes,l_Id,logbuf.time_now);
 			is_partly_handled = true;
 		}
-		if(utl::exists(notif_map,"event"))//events
+		if(utl::exists(notif_map,"alive"))
 		{
-			sensor_measure_t reset_evt;
-			reset_evt.time = logbuf.time_now;
-
-			if(utl::compare(notif_map["event"],"Reset"))
-			{
-				reset_evt.value = 1;
-				nodes[l_Id]["Reset"].push_back(reset_evt);
-			}
+			handle_float("alive",notif_map,nodes,l_Id,logbuf.time_now);
 			is_partly_handled = true;
 		}
-		if(utl::exists(notif_map,"status"))//current states
+		if(utl::exists(notif_map,"reset"))
 		{
-			sensor_measure_t state;
-			state.time = logbuf.time_now;
-
-			if(utl::compare(notif_map["status"],"Alive"))
-			{
-				state.value = 1;
-				nodes[l_Id]["Alive"].push_back(state);
-			}
-
+			handle_float("reset",notif_map,nodes,l_Id,logbuf.time_now);
+			is_partly_handled = true;
+		}
+		if(utl::exists(notif_map,"power"))
+		{
+			handle_float("power",notif_map,nodes,l_Id,logbuf.time_now);
+			is_partly_handled = true;
+		}
+		if(utl::exists(notif_map,"rssi"))
+		{
+			handle_float("rssi",notif_map,nodes,l_Id,logbuf.time_now);
 			is_partly_handled = true;
 		}
 		if(!is_partly_handled)
 		{
-			Log::cout << "stm32\t"<<logline << Log::Info();
+			Log::cout << "rf_soc\t"<<logline << Log::Info();
 		}
 	}
 }
